@@ -1,0 +1,182 @@
+{% extends 'layout.html' %}
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        
+        <div class="col-md-4">
+            <div class="glass-card">
+                <div class="text-center">
+                    <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem; font-weight: bold;">
+                        {{ user['blood_group'] }}
+                    </div>
+                    <h4 class="mb-1">{{ user['name'] }}</h4>
+                    <span class="badge bg-success mb-3">Active Donor</span>
+                </div>
+                
+                <hr>
+                
+                <h5 class="text-danger mb-3 fw-bold">Edit Profile</h5>
+                <form action="{{ url_for('user_profile') }}" method="POST">
+                    <div class="mb-2">
+                        <label class="form-label small text-muted mb-0">Full Name</label>
+                        <input type="text" name="name" class="form-control form-control-sm" value="{{ user['name'] }}" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-muted mb-0">Email ID</label>
+                        <input type="email" name="email" class="form-control form-control-sm" value="{{ user['email'] }}" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-muted mb-0">City</label>
+                        <input type="text" name="city" class="form-control form-control-sm" value="{{ user['city'] }}" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-muted mb-0">Phone Number (Cannot be changed)</label>
+                        <input type="text" class="form-control form-control-sm bg-light text-secondary" value="{{ user['phone'] }}" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted mb-0">Address</label>
+                        <textarea name="address" class="form-control form-control-sm" rows="2">{{ user['address'] }}</textarea>
+                    </div>
+                    <button class="btn btn-danger w-100 mb-4">Save Profile Changes</button>
+                </form>
+                <hr>
+                <h5 class="text-danger mb-2 fw-bold">Security</h5>
+                <form action="{{ url_for('change_password') }}" method="POST">
+                    <input type="password" name="old_password" class="form-control form-control-sm mb-2" placeholder="Current Password" required>
+                    <input type="password" name="new_password" class="form-control form-control-sm mb-2" placeholder="New Password" required>
+                    <button class="btn btn-outline-dark w-100 btn-sm">Update Password</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="glass-card mb-4 border-danger border-2">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="text-danger fw-bold mb-0">📅 My Appointments</h4>
+                    <a href="{{ url_for('book_appointment') }}" class="btn btn-danger btn-sm">Book New</a>
+                </div>
+                
+                {% if appointments %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Date</th>
+                                <th>Location</th>
+                                <th>Type</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for appt in appointments %}
+                            <tr>
+                                <td>{{ appt['date'] }}</td>
+                                <td>{{ appt['location_name'] }}</td>
+                                <td>
+                                    <span class="badge {% if appt['type'] == 'Hospital' %}bg-primary{% else %}bg-warning text-dark{% endif %}">
+                                        {{ appt['type'] }}
+                                    </span>
+                                </td>
+                                <td>{{ appt['time_slot'] }}</td>
+                                <td>
+                                    {% if appt['status'] == 'Scheduled' or appt['status'] == 'Registered' %}
+                                        <span class="badge bg-warning text-dark">⏳ Active</span>
+                                    {% elif appt['status'] == 'Verified' %}
+                                        <span class="badge bg-success">✅ Verified</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ appt['status'] }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <p class="text-muted">No appointments booked yet.</p>
+                {% endif %}
+            </div>
+
+            <div class="glass-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0">📜 Completed Donations</h4>
+                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#donateModal">
+                        Log Past Donation
+                    </button>
+                </div>
+                {% if donations %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr><th>Date</th><th>Hospital</th><th>Status</th><th>Certificate</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for d in donations %}
+                            <tr>
+                                <td>{{ d['date'] }}</td>
+                                <td>{{ d['hospital'] }}</td>
+                                <td>
+                                    {% if d['status'] == 'Pending' %}
+                                        <span class="badge bg-warning text-dark">⏳ Pending</span>
+                                    {% elif d['status'] == 'Approved' or d['status'] == 'Verified' %}
+                                        <span class="badge bg-success">✅ Verified</span>
+                                    {% elif d['status'] == 'Rejected' %}
+                                        <span class="badge bg-danger">❌ Rejected</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if d['status'] == 'Approved' or d['status'] == 'Verified' %}
+                                        <a href="{{ url_for('download_certificate', appt_id=d['id']) }}" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-download"></i> Download
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted small">Not Available</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted"><p>No completed donations yet.</p></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="donateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Log Past Donation</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('donate') }}" method="POST">
+                <div class="modal-body">
+                    <div class="alert alert-info small">
+                        <strong>Note:</strong> A verification request will be sent to the selected hospital. Once they approve it, your certificate will be generated.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Select Hospital</label>
+                        <select name="hospital_name" class="form-select" required>
+                            {% for h in hospitals %}
+                                <option value="{{ h['name'] }}">{{ h['name'] }} ({{ h['type'] }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <p class="text-muted small">Standard donation volume is 450ml.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

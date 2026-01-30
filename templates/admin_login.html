@@ -1,0 +1,21 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <div class="glass-card p-5 text-center">
+            <h1 class="mb-3">🛡️</h1>
+            <h3 class="fw-bold mb-4">Admin Portal</h3>
+            <form method="POST">
+                <div class="mb-3">
+                    <input type="email" name="email" class="form-control" placeholder="Enter Admin Email" required autocomplete="off">
+                </div>
+                <div class="mb-3">
+                    <input type="password" name="password" class="form-control" placeholder="Enter Password" required autocomplete="new-password">
+                </div>
+                <button class="btn btn-dark w-100">Access Dashboard</button>
+            </form>
+            <a href="{{ url_for('login') }}" class="d-block mt-3 text-muted">Back to User Login</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

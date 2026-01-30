@@ -1,0 +1,319 @@
+{% extends 'layout.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<style>
+    /* Admin Dark Theme Background */
+    body { 
+        background: linear-gradient(135deg, #2b0404, #4a0e0e, #801f1f) !important; 
+        color: white !important; 
+        min-height: 100vh;
+    }
+    .glass-card { 
+        background: rgba(255, 255, 255, 0.08); 
+        backdrop-filter: blur(10px); 
+        border: 1px solid rgba(255, 255, 255, 0.2); 
+        border-radius: 12px; 
+        color: white; 
+    }
+    .form-control, .form-select { 
+        background-color: rgba(0, 0, 0, 0.5) !important; 
+        border: 1px solid rgba(255, 255, 255, 0.3) !important; 
+        color: white !important; 
+    }
+    option { background-color: #222; color: white; }
+    .nav-tabs .nav-link { color: rgba(255,255,255,0.7); cursor: pointer; font-weight: bold; }
+    .nav-tabs .nav-link.active { 
+        background-color: rgba(255,255,255,0.15) !important; 
+        color: #ffc107 !important; 
+        border-color: transparent; 
+    }
+    h3, h4 { color: white !important; text-shadow: 0px 2px 4px rgba(0,0,0,0.5); }
+    p, .small, small { color: #e0e0e0 !important; opacity: 1 !important; }
+    label.form-label { color: #ffc107 !important; font-weight: bold; }
+</style>
+
+<div class="glass-card p-4 mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="text-white fw-bold">Admin Dashboard</h3>
+        <div>
+            <button class="btn btn-outline-warning btn-sm me-2 fw-bold" data-bs-toggle="modal" data-bs-target="#adminProfileModal">
+                <i class="bi bi-gear-fill"></i> Edit Profile
+            </button>
+            <span class="badge bg-warning text-dark">Super Admin</span>
+        </div>
+    </div>
+
+    <ul class="nav nav-tabs border-0 mb-4" id="adminTabs" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#users">👤 Manage Users</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#hosts">🏕️ Manage Camp Hosts</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#hospitals">🏥 Manage Hospitals</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#pending">⏳ Pending Requests</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#verified">✅ Verified History</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#reports">📊 Reports & Export</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#gallery">🖼️ Gallery</button></li>
+    </ul>
+
+    <div class="tab-content">
+        
+        <div class="tab-pane fade show active" id="users">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="text-light">Registered Donors</h4>
+                <div class="btn-group">
+                    <a href="{{ url_for('add_user') }}" class="btn btn-sm btn-warning fw-bold me-2">+ Add New User</a>
+                    <a href="{{ url_for('export_report', type='users_list', file_format='csv') }}" class="btn btn-sm btn-outline-success">Download CSV</a>
+                    <a href="{{ url_for('export_report', type='users_list', file_format='pdf') }}" class="btn btn-sm btn-outline-danger">Download PDF</a>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle">
+                    <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Group</th><th>City</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {% for donor in donors %}
+                        <tr>
+                            <td>{{ donor['name'] }}</td><td>{{ donor['email'] }}</td><td>{{ donor['phone'] }}</td>
+                            <td><span class="badge bg-danger">{{ donor['blood_group'] }}</span></td><td>{{ donor['city'] }}</td>
+                            <td>
+                                <a href="{{ url_for('edit_user', id=donor['id']) }}" class="btn btn-sm btn-outline-light">Edit</a>
+                                <a href="{{ url_for('delete_user', id=donor['id']) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete?');">Delete</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="hosts">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="text-info">Camp Organizers & Hosts</h4>
+                <div class="btn-group">
+                    <a href="{{ url_for('add_host') }}" class="btn btn-sm btn-info fw-bold text-dark me-2">+ Add New Host</a>
+                    <a href="{{ url_for('export_report', type='hosts_list', file_format='csv') }}" class="btn btn-sm btn-outline-success">Download CSV</a>
+                    <a href="{{ url_for('export_report', type='hosts_list', file_format='pdf') }}" class="btn btn-sm btn-outline-danger">Download PDF</a>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle">
+                    <thead><tr><th>Organization</th><th>Leader Name</th><th>Contact</th><th>Aadhar</th><th>City</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {% for host in hosts %}
+                        <tr>
+                            <td class="fw-bold">{{ host['organization_name'] }}</td><td>{{ host['leader_name'] }}</td>
+                            <td><small>{{ host['email'] }}</small><br><small class="text-warning">{{ host['phone'] }}</small></td>
+                            <td>{{ host['aadhar_number'] }}</td><td>{{ host['city'] }}</td>
+                            <td>
+                                <a href="{{ url_for('edit_host', id=host['id']) }}" class="btn btn-sm btn-outline-warning">Edit</a>
+                                <a href="{{ url_for('delete_host', id=host['id']) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete?');">Delete</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="6" class="text-center text-white-50">No hosts found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="hospitals">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="text-warning">Hospital Management</h4>
+                <div class="btn-group">
+                    <a href="{{ url_for('add_hospital') }}" class="btn btn-sm btn-warning fw-bold me-2">+ Add New Hospital</a>
+                    <a href="{{ url_for('export_report', type='hospitals_list', file_format='csv') }}" class="btn btn-sm btn-outline-success">Download CSV</a>
+                    <a href="{{ url_for('export_report', type='hospitals_list', file_format='pdf') }}" class="btn btn-sm btn-outline-danger">Download PDF</a>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle">
+                    <thead><tr><th>Name</th><th>Email</th><th>Type</th><th>Location</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {% for h in hospitals %}
+                        <tr>
+                            <td class="fw-bold">{{ h.name }}</td><td>{{ h.email }}</td>
+                            <td><span class="badge bg-info text-dark">{{ h.type }}</span></td>
+                            <td><small>Lat: {{ h.lat }}<br>Lng: {{ h.lng }}</small></td>
+                            <td>
+                                <a href="{{ url_for('edit_hospital', id=h.id) }}" class="btn btn-sm btn-outline-warning">Edit</a>
+                                <a href="{{ url_for('delete_hospital', id=h.id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete?');">Delete</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="pending">
+             <h4 class="text-warning mb-3">⏳ Pending Verification</h4>
+             <div class="table-responsive">
+                 <table class="table table-dark table-hover align-middle">
+                     <thead><tr><th>Date</th><th>Hospital</th><th>Donor</th><th>Phone</th><th>Status</th></tr></thead>
+                     <tbody>
+                         {% for appt in pending_appts %}
+                         <tr>
+                             <td>{{ appt['date'] }}</td><td class="text-info fw-bold">{{ appt['hospital_name'] }}</td>
+                             <td>{{ appt['donor'] }}</td><td>{{ appt['phone'] }}</td>
+                             <td><span class="badge bg-warning text-dark">Pending</span></td>
+                         </tr>
+                         {% else %}<tr><td colspan="5" class="text-center">No pending appointments.</td></tr>{% endfor %}
+                     </tbody>
+                 </table>
+             </div>
+        </div>
+
+        <div class="tab-pane fade" id="verified">
+             <h4 class="text-success mb-3">✅ Verified Donations</h4>
+             <div class="table-responsive">
+                 <table class="table table-dark table-hover align-middle">
+                     <thead><tr><th>Date</th><th>Hospital</th><th>Donor</th><th>Phone</th><th>Status</th></tr></thead>
+                     <tbody>
+                         {% for appt in verified_appts %}
+                         <tr>
+                             <td>{{ appt['date'] }}</td><td class="text-info fw-bold">{{ appt['hospital_name'] }}</td>
+                             <td>{{ appt['donor'] }}</td><td>{{ appt['phone'] }}</td>
+                             <td><span class="badge bg-success">Verified</span></td>
+                         </tr>
+                         {% else %}<tr><td colspan="5" class="text-center">No verified donations.</td></tr>{% endfor %}
+                     </tbody>
+                 </table>
+             </div>
+        </div>
+
+        <div class="tab-pane fade" id="reports">
+             <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="p-4 border border-secondary rounded h-100">
+                        <h4 class="text-danger mb-2">🩸 Blood Donation Logs</h4>
+                        <p style="color: #ddd !important;">Download detailed records.</p>
+                        <form action="{{ url_for('export_report') }}" method="GET">
+                            <input type="hidden" name="type" value="donations">
+                            <label class="form-label mt-2 text-warning">Filter by Blood Group:</label>
+                            <select name="blood_group" class="form-select mb-3">
+                                <option value="all">All Groups</option>
+                                <option value="A+">A+</option><option value="A-">A-</option>
+                                <option value="B+">B+</option><option value="B-">B-</option>
+                                <option value="O+">O+</option><option value="O-">O-</option>
+                                <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                            </select>
+                            <div class="d-flex gap-2">
+                                <button type="submit" name="file_format" value="csv" class="btn btn-danger w-50">CSV</button>
+                                <button type="submit" name="file_format" value="pdf" class="btn btn-outline-danger w-50">PDF</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <div class="p-4 border border-secondary rounded h-100">
+                        <h4 class="text-info mb-2">🏥 Hospital Performance</h4>
+                        <p style="color: #ddd !important;">Download summary/detailed.</p>
+                        <form action="{{ url_for('export_report') }}" method="GET">
+                            <input type="hidden" name="type" value="hospitals">
+                            <div class="d-flex gap-2">
+                                <button type="submit" name="file_format" value="csv" class="btn btn-info text-white w-50">CSV</button>
+                                <button type="submit" name="file_format" value="pdf" class="btn btn-outline-info w-50">PDF</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <div class="p-4 border border-secondary rounded h-100">
+                        <h4 class="text-warning mb-2">🏕️ Camp History Log</h4>
+                        <p style="color: #ddd !important;">Download camp logs.</p>
+                        <form action="{{ url_for('export_report') }}" method="GET">
+                            <input type="hidden" name="type" value="camps_history">
+                            <div class="d-flex gap-2">
+                                <button type="submit" name="file_format" value="csv" class="btn btn-warning w-50 fw-bold">CSV</button>
+                                <button type="submit" name="file_format" value="pdf" class="btn btn-outline-warning w-50 fw-bold">PDF</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="gallery">
+            <h4 class="text-info mb-3">🖼️ Manage Home Page Gallery</h4>
+            <div class="row g-3">
+                {% for photo in gallery_photos %}
+                <div class="col-md-3 col-6">
+                    <div class="card bg-dark border-secondary h-100">
+                        <img src="{{ url_for('static', filename='uploads/' ~ photo['filename']) }}" class="card-img-top" alt="Camp Photo" style="height: 150px; object-fit: cover;">
+                        <div class="card-body p-2">
+                            <small class="text-white d-block text-truncate">{{ photo['camp_name'] }}</small>
+                            <small class="text-muted">{{ photo['date'] }}</small>
+                            <a href="{{ url_for('delete_camp_photo_admin', id=photo['id']) }}" class="btn btn-sm btn-danger w-100 mt-2" onclick="return confirm('Delete this photo?');">Delete</a>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-muted">No photos in the gallery.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="modal fade" id="adminProfileModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content glass-card border-warning">
+            <div class="modal-header border-bottom border-warning">
+                <h5 class="modal-title text-warning fw-bold">⚙️ Edit Admin Profile</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('update_admin_profile') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-warning">Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ admin_info['name'] }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-warning">Email</label>
+                        <input type="email" name="email" class="form-control" value="{{ admin_info['email'] }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-warning">Login Phone / ID</label>
+                        <input type="text" name="phone" class="form-control" value="{{ admin_info['phone'] }}" required>
+                    </div>
+                    <hr class="border-secondary">
+                    <div class="mb-3">
+                        <label class="form-label text-danger fw-bold">⚠ New Password (Optional)</label>
+                        <div class="input-group">
+                            <input type="password" name="password" id="adminPass" class="form-control" placeholder="Leave blank to keep current">
+                            <button class="btn btn-secondary" type="button" onclick="togglePassword('adminPass', 'adminEye')">
+                                <i class="bi bi-eye" id="adminEye"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-warning">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning fw-bold">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Universal Password Toggle Function
+    function togglePassword(inputId, iconId) {
+        var input = document.getElementById(inputId);
+        var icon = document.getElementById(iconId);
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove("bi-eye");
+            icon.classList.add("bi-eye-slash");
+        } else {
+            input.type = "password";
+            icon.classList.remove("bi-eye-slash");
+            icon.classList.add("bi-eye");
+        }
+    }
+</script>
+{% endblock %}

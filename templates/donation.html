@@ -1,0 +1,35 @@
+{% extends 'layout.html' %}
+{% block title %}Donation Guide - BloodBank{% endblock %}
+{% block content %}
+<div class="glass-card p-5">
+    <h2 class="mb-4">Why Donate Blood?</h2>
+    <p class="lead">A single donation can save up to three lives. Blood is essential for surgeries, cancer treatment, chronic illnesses, and traumatic injuries.</p>
+    
+    <div class="row mt-5">
+        <div class="col-md-6 mb-4">
+            <h4 class="text-danger fw-bold">✅ Eligibility Criteria</h4>
+            <ul class="list-group list-group-flush bg-transparent">
+                <li class="list-group-item bg-transparent text-white border-secondary">Age: Between 18 and 65 years.</li>
+                <li class="list-group-item bg-transparent text-white border-secondary">Weight: At least 50 kg (110 lbs).</li>
+                <li class="list-group-item bg-transparent text-white border-secondary">Health: Must be in good general health.</li>
+                <li class="list-group-item bg-transparent text-white border-secondary">Last Donation: At least 3 months ago (for males) or 4 months (for females).</li>
+            </ul>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <h4 class="text-info fw-bold">🩸 The Process</h4>
+            <ol class="list-group list-group-numbered bg-transparent">
+                <li class="list-group-item bg-transparent text-white border-0"><b>Registration:</b> Sign up and provide your details.</li>
+                <li class="list-group-item bg-transparent text-white border-0"><b>Screening:</b> A quick check of hemoglobin and blood pressure.</li>
+                <li class="list-group-item bg-transparent text-white border-0"><b>Donation:</b> Takes about 10-15 minutes.</li>
+                <li class="list-group-item bg-transparent text-white border-0"><b>Refreshment:</b> Relax and have a juice/snack.</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="text-center mt-4">
+        <p>Ready to save a life?</p>
+        <a href="{{ url_for('register') }}" class="btn btn-lg btn-danger">Register as Donor Now</a>
+    </div>
+</div>
+{% endblock %}

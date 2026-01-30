@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+{% block title %}Donors{% endblock %}
+{% block content %}
+<h2>Donors</h2>
+<table class="table table-bordered">
+  <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Amount</th></tr></thead>
+  <tbody>
+    {% for d in donors %}
+      <tr><td>{{ d.id }}</td><td>{{ d.name }}</td><td>{{ d.email }}</td><td>{{ d.amount }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+<a class="btn btn-secondary" href="{{ url_for('admin_dashboard') }}">Back to dashboard</a>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends 'layout.html' %}
+{% block title %}Add New Hospital{% endblock %}
+
+{% block content %}
+<style>
+    /* Page Background */
+    body { 
+        background: linear-gradient(135deg, #2b0404, #4a0e0e) !important; 
+        color: white !important; 
+    }
+
+    /* Glass Card Styling */
+    .glass-card { 
+        background: rgba(255, 255, 255, 0.08); /* Slightly clearer background */
+        backdrop-filter: blur(12px); 
+        border: 1px solid rgba(255, 255, 255, 0.15); 
+        border-radius: 12px; 
+        color: white; 
+    }
+
+    /* Input Fields Styling - Ensuring Visibility */
+    .form-control, .form-select { 
+        background-color: rgba(0, 0, 0, 0.5) !important; /* Darker bg for contrast */
+        border: 1px solid #777 !important; 
+        color: #ffffff !important; /* Bright White Text */
+        font-weight: 500;
+    }
+
+    /* Make Placeholders Visible (Light Grey) */
+    .form-control::placeholder { 
+        color: #cccccc !important; 
+        opacity: 1; 
+    }
+
+    /* Fix Dropdown Menu Colors */
+    .form-select option {
+        background-color: #333;
+        color: white;
+    }
+
+    /* Labels */
+    label { 
+        color: #ffc107; /* Yellow for visibility */
+        font-weight: bold; 
+        margin-bottom: 5px;
+    }
+
+    /* Fix for Browser Autofill (Email/Password turning white) */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover, 
+    input:-webkit-autofill:focus, 
+    input:-webkit-autofill:active {
+        -webkit-text-fill-color: white !important;
+        -webkit-box-shadow: 0 0 0px 1000px #222 inset !important; /* Forces dark background */
+        transition: background-color 5000s ease-in-out 0s;
+    }
+</style>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="glass-card p-4">
+            <h3 class="mb-4 text-center text-warning">🏥 Add New Hospital</h3>
+            
+            <form method="POST">
+                <div class="mb-3">
+                    <label>Hospital Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="Ex: Apollo Main Branch" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label>Login Email</label>
+                    <input type="email" name="email" class="form-control" placeholder="admin@hospital.com" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label>Login Password</label>
+                    <input type="password" name="password" class="form-control" placeholder="Create a strong password" required>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label>Type</label>
+                        <select name="type" class="form-select" required>
+                            <option value="Govt">Govt</option>
+                            <option value="Private">Private</option>
+                            <option value="NGO">NGO</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>Latitude</label>
+                        <input type="text" name="lat" class="form-control" placeholder="13.0827" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>Longitude</label>
+                        <input type="text" name="lng" class="form-control" placeholder="80.2707" required>
+                    </div>
+                </div>
+                
+                <div class="alert alert-dark small text-light border-secondary">
+                    <i class="bi bi-info-circle text-warning"></i> Tip: Use Google Maps to find the exact Latitude and Longitude for the map feature to work correctly.
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-warning fw-bold text-dark">Add Hospital</button>
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-light">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

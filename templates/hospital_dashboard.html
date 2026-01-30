@@ -1,0 +1,158 @@
+{% extends 'layout.html' %}
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>🏥 Hospital Dashboard: {{ session.name }}</h2>
+        <span class="badge bg-info text-dark">Staff Access</span>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="glass-card h-100">
+                <h5 class="text-danger"><i class="bi bi-file-earmark-arrow-down"></i> Export Donation History</h5>
+                <form action="{{ url_for('hospital_export_donations') }}" method="GET">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-4">
+                            <label class="small text-muted">Start Date</label>
+                            <input type="date" name="start_date" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-4">
+                            <label class="small text-muted">End Date</label>
+                            <input type="date" name="end_date" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-4">
+                            <label class="small text-muted">Blood Group</label>
+                            <select name="blood_group" class="form-select form-select-sm">
+                                <option value="all">All</option>
+                                <option value="A+">A+</option> <option value="A-">A-</option>
+                                <option value="B+">B+</option> <option value="B-">B-</option>
+                                <option value="O+">O+</option> <option value="O-">O-</option>
+                                <option value="AB+">AB+</option> <option value="AB-">AB-</option>
+                            </select>
+                        </div>
+                        <div class="col-12 mt-2 d-flex gap-2">
+                            <button type="submit" name="format" value="csv" class="btn btn-sm btn-outline-success w-50">Download CSV</button>
+                            <button type="submit" name="format" value="pdf" class="btn btn-sm btn-outline-danger w-50">Download PDF</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="glass-card h-100">
+                <h5 class="text-primary"><i class="bi bi-calendar-check"></i> Export Appointments</h5>
+                <form action="{{ url_for('hospital_export_appointments') }}" method="GET">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-4">
+                            <label class="small text-muted">Start Date</label>
+                            <input type="date" name="start_date" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-4">
+                            <label class="small text-muted">End Date</label>
+                            <input type="date" name="end_date" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-4">
+                            <label class="small text-muted">Status</label>
+                            <select name="status" class="form-select form-select-sm">
+                                <option value="all">All</option>
+                                <option value="Scheduled">Scheduled</option>
+                                <option value="Verified">Verified</option>
+                                <option value="Rejected">Rejected</option>
+                            </select>
+                        </div>
+                        <div class="col-12 mt-2 d-flex gap-2">
+                            <button type="submit" name="format" value="csv" class="btn btn-sm btn-outline-success w-50">Download CSV</button>
+                            <button type="submit" name="format" value="pdf" class="btn btn-sm btn-outline-danger w-50">Download PDF</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="glass-card mb-4 border-danger border-2">
+        <div class="d-flex align-items-center mb-3">
+            <h4 class="text-danger mb-0 me-2">⚠️ Verification Queue</h4>
+            <span class="badge bg-danger rounded-pill">{{ verification_queue|length }} pending</span>
+        </div>
+        <p class="text-muted small">These donors are scheduled for today (or past dates) or have manually claimed a donation. Verify if they donated.</p>
+        
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Donor Name</th>
+                        <th>Blood Group</th>
+                        <th>Phone</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in verification_queue %}
+                    <tr>
+                        <td>{{ item.date }}</td>
+                        <td>
+                            {% if item.type == 'Manual Request' %}
+                                <span class="badge bg-warning text-dark">Manual Claim</span>
+                            {% else %}
+                                <span class="badge bg-primary">Appointment</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold">{{ item.donor_name }}</td>
+                        <td><span class="badge bg-danger">{{ item.blood_group }}</span></td>
+                        <td>{{ item.phone }}</td>
+                        <td>
+                            <a href="{{ url_for('verify_donation', id=item.id, action='approve', type=item.type) }}" class="btn btn-sm btn-success">
+                                ✅ Confirm Donation
+                            </a>
+                            <a href="{{ url_for('verify_donation', id=item.id, action='reject', type=item.type) }}" class="btn btn-sm btn-outline-danger">
+                                ❌ Absent/Reject
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center text-muted py-3">No pending verifications for today.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="glass-card border-info border-2">
+        <h4 class="text-info">📅 Upcoming Schedule</h4>
+        <p class="text-muted small">Future appointments. Verification will be enabled on the day of the appointment.</p>
+        
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Donor Name</th>
+                        <th>Blood Group</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appt in upcoming %}
+                    <tr>
+                        <td>{{ appt.date }}</td>
+                        <td>{{ appt.time_slot }}</td>
+                        <td>{{ appt.donor_name }}</td>
+                        <td><span class="badge bg-danger">{{ appt.blood_group }}</span></td>
+                        <td>
+                            <span class="badge bg-info text-dark">⏳ Scheduled</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted">No upcoming appointments found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

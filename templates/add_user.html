@@ -1,0 +1,73 @@
+{% extends 'layout.html' %}
+{% block title %}Add New User{% endblock %}
+
+{% block content %}
+<style>
+    body { background: linear-gradient(135deg, #2b0404, #4a0e0e) !important; color: white !important; }
+    .glass-card { background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: white; }
+    .form-control, .form-select { background-color: rgba(0, 0, 0, 0.5) !important; border: 1px solid #777 !important; color: #ffffff !important; }
+    .form-control::placeholder { color: #cccccc !important; }
+    label { color: #ffc107; font-weight: bold; margin-bottom: 5px; }
+</style>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8">
+        <div class="glass-card p-4">
+            <h3 class="mb-4 text-center text-warning">👤 Add New Donor User</h3>
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>Full Name</label>
+                        <input type="text" name="name" class="form-control" required placeholder="John Doe">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label>Email</label>
+                        <input type="email" name="email" class="form-control" required placeholder="email@example.com">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>Phone</label>
+                        <input type="text" name="phone" class="form-control" required placeholder="Mobile Number">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label>Password</label>
+                        <input type="password" name="password" class="form-control" required placeholder="Create Password">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label>Blood Group</label>
+                        <select name="blood_group" class="form-select" required>
+                            <option value="A+">A+</option><option value="A-">A-</option>
+                            <option value="B+">B+</option><option value="B-">B-</option>
+                            <option value="O+">O+</option><option value="O-">O-</option>
+                            <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>Age</label>
+                        <input type="number" name="age" class="form-control" required placeholder="Age">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>Weight (kg)</label>
+                        <input type="number" name="weight" class="form-control" required placeholder="Weight">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label>City</label>
+                    <input type="text" name="city" class="form-control" required placeholder="City">
+                </div>
+                <div class="mb-4">
+                    <label>Address</label>
+                    <textarea name="address" class="form-control" rows="2" required placeholder="Full Address"></textarea>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-warning fw-bold text-dark">Create User</button>
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-light">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

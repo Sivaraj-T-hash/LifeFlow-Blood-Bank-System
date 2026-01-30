@@ -1,0 +1,49 @@
+{% extends 'layout.html' %}
+{% block title %}Contact Us - BloodBank{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="glass-card p-5">
+            <h2 class="mb-4 text-center">Get in Touch</h2>
+            
+            <div class="row mb-5">
+                <div class="col-md-4 text-center mb-3">
+                    <div class="p-3 border border-secondary rounded">
+                        <h5>📞 Phone</h5>
+                        <p class="mb-0 text-white-50">+91 98765 43210</p>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center mb-3">
+                    <div class="p-3 border border-secondary rounded">
+                        <h5>📧 Email</h5>
+                        <p class="mb-0 text-white-50">help@bloodbank.com</p>
+                    </div>
+                </div>
+                <div class="col-md-4 text-center mb-3">
+                    <div class="p-3 border border-secondary rounded">
+                        <h5>📍 Location</h5>
+                        <p class="mb-0 text-white-50">Chennai, Tamil Nadu</p>
+                    </div>
+                </div>
+            </div>
+
+            <h4 class="mb-3">Send us a message</h4>
+            <form>
+                <div class="mb-3">
+                    <label>Your Name</label>
+                    <input type="text" class="form-control" placeholder="John Doe">
+                </div>
+                <div class="mb-3">
+                    <label>Email Address</label>
+                    <input type="email" class="form-control" placeholder="name@example.com">
+                </div>
+                <div class="mb-3">
+                    <label>Message</label>
+                    <textarea class="form-control" rows="4" placeholder="How can we help you?"></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger w-100">Send Message</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

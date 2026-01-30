@@ -1,0 +1,110 @@
+{% extends 'layout.html' %}
+{% block title %}Register as Camp Host{% endblock %}
+
+{% block content %}
+<style>
+    /* Dark Theme Background */
+    body { 
+        background-color: #1a1a1a; 
+        color: white; 
+    }
+    
+    /* Card Styling */
+    .glass-card { 
+        background: rgba(255, 255, 255, 0.08); /* Slightly lighter for visibility */
+        backdrop-filter: blur(10px); 
+        border: 1px solid rgba(255, 255, 255, 0.1); 
+        border-radius: 12px; 
+        max-width: 600px; 
+        margin: 50px auto; 
+        padding: 40px; 
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Input Fields - High Contrast */
+    .form-control { 
+        background-color: rgba(0, 0, 0, 0.5) !important; /* Dark background */
+        border: 1px solid #666 !important; /* Visible border */
+        color: white !important; /* WHITE TEXT */
+        font-weight: 500;
+    }
+    
+    /* Placeholder Text Color */
+    .form-control::placeholder { 
+        color: #aaa !important; 
+        opacity: 1;
+    }
+    
+    /* Labels */
+    label { 
+        color: #e0e0e0; /* Bright Grey/White */
+        font-weight: bold; 
+        margin-bottom: 5px; 
+    }
+    
+    /* Headings */
+    h3 { color: #ffc107; text-shadow: 1px 1px 2px black; }
+
+    /* Buttons */
+    .btn-warning {
+        font-weight: bold;
+        padding: 12px;
+        font-size: 1.1rem;
+    }
+</style>
+
+<div class="glass-card">
+    <h3 class="text-center mb-4">Register as Camp Host</h3>
+    
+    <form method="POST">
+        <div class="mb-3">
+            <label>Organization / College Name</label>
+            <input type="text" name="organization_name" class="form-control" required placeholder="Ex: Anna University, Rotary Club">
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label>Leader Name</label>
+                <input type="text" name="leader_name" class="form-control" required placeholder="Full Name">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label>Aadhar Number</label>
+                <input type="text" name="aadhar_number" class="form-control" required placeholder="XXXX-XXXX-XXXX" pattern="\d{12}" title="12 Digit Aadhar Number">
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label>Email</label>
+                <input type="email" name="email" class="form-control" required placeholder="email@example.com">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label>Phone</label>
+                <input type="text" name="phone" class="form-control" required placeholder="Mobile Number">
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label>City</label>
+                <input type="text" name="city" class="form-control" required placeholder="City Name">
+            </div>
+            <div class="col-md-6 mb-3">
+                <label>Password</label>
+                <input type="password" name="password" class="form-control" required placeholder="Create Password">
+            </div>
+        </div>
+        
+        <div class="mb-4">
+            <label>Address / HQ Location</label>
+            <textarea name="address" class="form-control" rows="2" required placeholder="Full Address of the Organization"></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-warning w-100">Create Host Account</button>
+        
+        <div class="text-center mt-3">
+            <a href="{{ url_for('login') }}" class="text-white-50 text-decoration-none">Already have an account? <span class="text-warning">Login</span></a>
+        </div>
+    </form>
+</div>
+{% endblock %}

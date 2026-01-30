@@ -1,0 +1,78 @@
+{% extends 'layout.html' %}
+{% block title %}Edit Hospital{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<style>
+    body { background: linear-gradient(135deg, #2b0404, #4a0e0e) !important; color: white !important; }
+    .glass-card { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); color: white; }
+    .form-control, .form-select { background: rgba(0,0,0,0.3) !important; border: 1px solid #555 !important; color: white !important; }
+</style>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="glass-card p-4">
+            <h3 class="mb-4 text-warning">Edit Hospital</h3>
+            <form method="POST">
+                <div class="mb-3">
+                    <label>Hospital Name</label>
+                    <input type="text" name="name" class="form-control" value="{{ hospital.name }}" required>
+                </div>
+                <div class="mb-3">
+                    <label>Login Email</label>
+                    <input type="email" name="email" class="form-control" value="{{ hospital.email }}" required>
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label>Type</label>
+                        <select name="type" class="form-select">
+                            <option value="Govt" {% if hospital.type == 'Govt' %}selected{% endif %}>Govt</option>
+                            <option value="Private" {% if hospital.type == 'Private' %}selected{% endif %}>Private</option>
+                            <option value="NGO" {% if hospital.type == 'NGO' %}selected{% endif %}>NGO</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>Lat</label>
+                        <input type="text" name="lat" class="form-control" value="{{ hospital.lat }}">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label>Lng</label>
+                        <input type="text" name="lng" class="form-control" value="{{ hospital.lng }}">
+                    </div>
+                </div>
+                
+                <div class="mb-3 p-3 border border-secondary rounded">
+                    <label class="text-danger fw-bold">Reset Password</label>
+                    <div class="input-group">
+                        <input type="password" name="password" id="hospPass" class="form-control" placeholder="Type here only to change password">
+                        <button class="btn btn-secondary" type="button" onclick="togglePassword('hospPass', 'hospEye')">
+                            <i class="bi bi-eye" id="hospEye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-warning w-100">Update</button>
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary w-100">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function togglePassword(inputId, iconId) {
+        var input = document.getElementById(inputId);
+        var icon = document.getElementById(iconId);
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove("bi-eye");
+            icon.classList.add("bi-eye-slash");
+        } else {
+            input.type = "password";
+            icon.classList.remove("bi-eye-slash");
+            icon.classList.add("bi-eye");
+        }
+    }
+</script>
+{% endblock %}

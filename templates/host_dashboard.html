@@ -1,0 +1,233 @@
+{% extends 'layout.html' %}
+{% block title %}Host Dashboard{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+    body { background: linear-gradient(135deg, #1f1f1f, #333) !important; color: white !important; }
+    .glass-card { 
+        background: rgba(255, 255, 255, 0.1); 
+        backdrop-filter: blur(10px); 
+        border: 1px solid rgba(255, 255, 255, 0.2); 
+        border-radius: 12px; 
+        padding: 25px; 
+        color: #ffffff; 
+    }
+    .form-control { 
+        background-color: rgba(0, 0, 0, 0.6) !important; 
+        border: 1px solid #999 !important; 
+        color: #ffffff !important; 
+        font-weight: 500;
+    }
+    .form-control::placeholder { color: #ccc !important; opacity: 1; }
+    #pickerMap { height: 300px; border-radius: 8px; border: 2px solid #fff; }
+</style>
+
+<div class="container mt-5">
+    
+    {% if pending_uploads %}
+    <div class="alert alert-danger fw-bold border-2 shadow-sm mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i> Action Required: You have {{ pending_uploads|length }} completed event(s) that require photos.
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="glass-card text-center h-100">
+                <h3>{{ host['organization_name'] }}</h3>
+                <p class="text-warning fw-bold">Camp Organizer</p>
+                <hr class="border-light">
+                <div class="text-start px-3">
+                    <p class="mb-2"><strong class="text-info">Leader:</strong> {{ host['leader_name'] }}</p>
+                    <p class="mb-2"><strong class="text-info">Phone:</strong> {{ host['phone'] }}</p>
+                </div>
+                <div class="mt-4">
+                    <a href="{{ url_for('logout') }}" class="btn btn-danger w-100">Logout</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="glass-card mb-4">
+                <h4 class="mb-3 text-warning"><i class="bi bi-calendar-plus"></i> Organize a New Blood Camp</h4>
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Camp Event Name</label>
+                            <input type="text" name="camp_name" class="form-control" placeholder="Ex: Annual Blood Drive" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Estimated Donors</label>
+                            <input type="number" name="estimated_participants" class="form-control" placeholder="100" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label>Start Date</label>
+                            <input type="date" name="date" class="form-control" required onchange="setMinEndDate(this)">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label>End Date (Optional)</label>
+                            <input type="date" name="end_date" id="end_date" class="form-control" title="Select if multi-day camp">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label>Time</label>
+                            <input type="text" name="time" class="form-control" placeholder="9 AM - 4 PM" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label>Location Name (Venue)</label>
+                        <input type="text" name="location_name" class="form-control" placeholder="Ex: City Community Hall" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="text-info"><i class="bi bi-geo-alt"></i> Select Location on Map:</label>
+                        <div id="pickerMap" class="mb-2"></div>
+                        <div class="row">
+                            <div class="col-6"><input type="text" id="lat" name="lat" class="form-control" placeholder="Latitude" readonly required></div>
+                            <div class="col-6"><input type="text" id="lng" name="lng" class="form-control" placeholder="Longitude" readonly required></div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="city" value="{{ host['city'] }}">
+                    <button type="submit" class="btn btn-warning w-100 fw-bold">Schedule Camp</button>
+                </form>
+            </div>
+
+            <div class="glass-card">
+                <h4 class="mb-3 text-info"><i class="bi bi-list-check"></i> Your Scheduled Camps</h4>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle border-white">
+                        <thead>
+                            <tr class="table-secondary text-dark">
+                                <th>Date</th><th>Event</th><th>Donors</th><th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for camp in camps %}
+                            <tr>
+                                <td>{{ camp['date'] }}</td>
+                                <td>
+                                    {{ camp['name'] }}<br>
+                                    <small class="text-info">{{ camp['location_name'] }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge {% if camp['registered_count'] >= camp['estimated_participants'] %}bg-danger{% else %}bg-info{% endif %} text-dark">
+                                        {{ camp['registered_count'] }} / {{ camp['estimated_participants'] }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#donorsModal{{ camp['id'] }}">
+                                        View Donors
+                                    </button>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center text-white-50">No camps yet.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if pending_uploads %}
+<div class="modal fade" id="uploadModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content text-dark">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-camera-fill"></i> Event Completed - Photos Required</h5>
+            </div>
+            <div class="modal-body">
+                <p>The following event(s) have ended. Please upload event photos to verify the camp was conducted.</p>
+                
+                <div class="list-group mb-3">
+                {% for camp in pending_uploads %}
+                    <div class="list-group-item">
+                        <strong>{{ camp['name'] }}</strong><br>
+                        <small class="text-muted">Date: {{ camp['date'] }} | Location: {{ camp['location_name'] }}</small>
+                        
+                        <form action="{{ url_for('upload_camp_photo') }}" method="POST" enctype="multipart/form-data" class="mt-2">
+                            <input type="hidden" name="camp_id" value="{{ camp['id'] }}">
+                            <div class="mb-2">
+                                <label class="small text-muted">Select Multiple Photos:</label>
+                                <input type="file" name="photos" class="form-control form-control-sm" accept="image/*" multiple required>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-primary w-100">Upload & Publish Gallery</button>
+                        </form>
+                    </div>
+                {% endfor %}
+                </div>
+                <small class="text-danger">* These photos will be publicly displayed on the Home Page gallery.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function(){
+        var myModal = new bootstrap.Modal(document.getElementById('uploadModal'));
+        myModal.show();
+    });
+</script>
+{% endif %}
+
+{% for camp in camps %}
+<div class="modal fade" id="donorsModal{{ camp['id'] }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content text-dark">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title">Donors for {{ camp['name'] }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-end mb-3">
+                    <a href="{{ url_for('export_camp_donors', camp_id=camp['id'], format='csv') }}" class="btn btn-sm btn-success me-2">Download CSV</a>
+                    <a href="{{ url_for('export_camp_donors', camp_id=camp['id'], format='pdf') }}" class="btn btn-sm btn-danger">Download PDF</a>
+                </div>
+                <ul class="list-group">
+                    {% set ns = namespace(found=false) %}
+                    {% for d in camp_donors %}
+                        {% if d['camp_id'] == camp['id'] %}
+                            {% set ns.found = true %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ d['name'] }}</strong> <span class="badge bg-danger ms-1">{{ d['blood_group'] }}</span><br>
+                                    <small class="text-muted"><i class="bi bi-telephone-fill"></i> {{ d['phone'] }} | <i class="bi bi-envelope-fill"></i> {{ d['email'] }}</small>
+                                </div>
+                                <span class="badge bg-secondary">{{ d['city'] }}</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    {% if not ns.found %}
+                        <p class="text-muted text-center my-3">No donors have registered for this camp yet.</p>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+    function setMinEndDate(startInput) {
+        document.getElementById('end_date').min = startInput.value;
+    }
+
+    var map = L.map('pickerMap').setView([13.0827, 80.2707], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+    var marker;
+    map.on('click', function(e) {
+        var lat = e.latlng.lat.toFixed(6);
+        var lng = e.latlng.lng.toFixed(6);
+        document.getElementById('lat').value = lat;
+        document.getElementById('lng').value = lng;
+        if (marker) { marker.setLatLng(e.latlng); } else { marker = L.marker(e.latlng).addTo(map); }
+    });
+</script>
+{% endblock %}

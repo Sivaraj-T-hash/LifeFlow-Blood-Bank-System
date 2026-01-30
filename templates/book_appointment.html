@@ -1,0 +1,96 @@
+{% extends 'layout.html' %}
+{% block title %}Book Appointment{% endblock %}
+
+{% block content %}
+<style>
+    body { background: linear-gradient(135deg, #2b0404, #4a0e0e) !important; color: white !important; }
+    .glass-card { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 12px; }
+    .form-control, .form-select { background: rgba(0,0,0,0.3) !important; border: 1px solid #555 !important; color: white !important; }
+    option { background-color: #333; }
+    .btn-toggle { opacity: 0.6; border: 1px solid white; color: white; }
+    .btn-toggle.active { opacity: 1; background-color: #dc3545; border-color: #dc3545; }
+</style>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8">
+        <div class="glass-card p-4">
+            <h3 class="text-center text-danger fw-bold mb-4">📅 Book Donation Slot</h3>
+
+            <div class="d-flex justify-content-center mb-4">
+                <button class="btn btn-toggle active w-25 me-2" id="btnHospital" onclick="switchMode('hospital')">🏥 Hospital</button>
+                <button class="btn btn-toggle w-25" id="btnCamp" onclick="switchMode('camp')">🏕️ Camp</button>
+            </div>
+
+            <form method="POST">
+                <input type="hidden" name="booking_type" id="bookingType" value="hospital">
+
+                <div id="hospitalSection">
+                    <div class="mb-3">
+                        <label class="fw-bold text-warning">Select Hospital</label>
+                        <select name="hospital_id" class="form-select">
+                            {% for h in hospitals %}
+                                <option value="{{ h['id'] }}">{{ h['name'] }} ({{ h['type'] }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label>Date</label>
+                            <input type="date" name="date" class="form-control" min="{{ current_date }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Time Slot</label>
+                            <select name="time_slot" class="form-select">
+                                <option>09:00 AM - 10:00 AM</option>
+                                <option>10:00 AM - 11:00 AM</option>
+                                <option>11:00 AM - 12:00 PM</option>
+                                <option>02:00 PM - 03:00 PM</option>
+                                <option>03:00 PM - 04:00 PM</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="campSection" style="display: none;">
+                    <div class="mb-3">
+                        <label class="fw-bold text-info">Select Available Camp</label>
+                        <select name="camp_id" class="form-select">
+                            {% for c in camps %}
+                                <option value="{{ c['id'] }}">
+                                    {{ c['date'] }} | {{ c['name'] }} @ {{ c['location_name'] }} ({{ c['city'] }})
+                                </option>
+                            {% else %}
+                                <option disabled>No upcoming camps available.</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text text-white-50">
+                            * Camps have limited slots. Book early.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-danger fw-bold">Confirm Booking</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchMode(mode) {
+        document.getElementById('bookingType').value = mode;
+        if (mode === 'hospital') {
+            document.getElementById('hospitalSection').style.display = 'block';
+            document.getElementById('campSection').style.display = 'none';
+            document.getElementById('btnHospital').classList.add('active');
+            document.getElementById('btnCamp').classList.remove('active');
+        } else {
+            document.getElementById('hospitalSection').style.display = 'none';
+            document.getElementById('campSection').style.display = 'block';
+            document.getElementById('btnHospital').classList.remove('active');
+            document.getElementById('btnCamp').classList.add('active');
+        }
+    }
+</script>
+{% endblock %}

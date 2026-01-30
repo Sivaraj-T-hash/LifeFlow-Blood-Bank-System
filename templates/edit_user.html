@@ -1,0 +1,80 @@
+{% extends 'layout.html' %}
+{% block title %}Edit User{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<style>
+    body { background: linear-gradient(135deg, #1f1f1f, #2c2c2c) !important; color: white !important; }
+    .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; max-width: 600px; margin: 40px auto; padding: 30px; }
+    .form-control, .form-select { background-color: rgba(0, 0, 0, 0.3) !important; border: 1px solid #444 !important; color: white !important; }
+    label { color: #bbb; margin-bottom: 5px; }
+</style>
+
+<div class="glass-card">
+    <h3 class="text-center text-warning mb-4">Edit Donor Details</h3>
+    <form method="POST">
+        <div class="mb-3">
+            <label>Full Name</label>
+            <input type="text" name="name" class="form-control" value="{{ donor['name'] }}" required>
+        </div>
+        <div class="mb-3">
+            <label>Email Address</label>
+            <input type="email" name="email" class="form-control" value="{{ donor['email'] }}" required>
+        </div>
+        <div class="mb-3">
+            <label>Phone Number</label>
+            <input type="text" name="phone" class="form-control" value="{{ donor['phone'] }}" required>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label>City</label>
+                <input type="text" name="city" class="form-control" value="{{ donor['city'] }}" required>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label>Blood Group</label>
+                <select name="blood_group" class="form-select">
+                    {% for bg in ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'] %}
+                    <option value="{{ bg }}" {% if donor['blood_group'] == bg %}selected{% endif %}>{{ bg }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <hr class="border-secondary my-4">
+        
+        <div class="mb-4">
+            <label class="text-danger fw-bold">⚠ Change Password (Optional)</label>
+            <div class="input-group">
+                <input type="password" name="password" id="userPass" class="form-control" placeholder="Enter new password to reset">
+                <button class="btn btn-secondary" type="button" onclick="togglePassword('userPass', 'userEye')">
+                    <i class="bi bi-eye" id="userEye"></i>
+                </button>
+            </div>
+            <small class="text-white-50">Leave blank to keep current password.</small>
+        </div>
+
+        <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-warning">Update Donor</button>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-light">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<script>
+    function togglePassword(inputId, iconId) {
+        var input = document.getElementById(inputId);
+        var icon = document.getElementById(iconId);
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove("bi-eye");
+            icon.classList.add("bi-eye-slash");
+        } else {
+            input.type = "password";
+            icon.classList.remove("bi-eye-slash");
+            icon.classList.add("bi-eye");
+        }
+    }
+</script>
+{% endblock %}

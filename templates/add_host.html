@@ -1,0 +1,64 @@
+{% extends 'layout.html' %}
+{% block title %}Add New Host{% endblock %}
+
+{% block content %}
+<style>
+    body { background: linear-gradient(135deg, #2b0404, #4a0e0e) !important; color: white !important; }
+    .glass-card { background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; color: white; }
+    .form-control { background-color: rgba(0, 0, 0, 0.5) !important; border: 1px solid #777 !important; color: #ffffff !important; }
+    .form-control::placeholder { color: #cccccc !important; }
+    label { color: #0dcaf0; font-weight: bold; margin-bottom: 5px; }
+</style>
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8">
+        <div class="glass-card p-4">
+            <h3 class="mb-4 text-center text-info">🏕️ Add New Camp Host</h3>
+            <form method="POST">
+                <div class="mb-3">
+                    <label>Organization Name</label>
+                    <input type="text" name="organization_name" class="form-control" required placeholder="Ex: Rotary Club">
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>Leader Name</label>
+                        <input type="text" name="leader_name" class="form-control" required placeholder="Full Name">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label>Aadhar Number</label>
+                        <input type="text" name="aadhar_number" class="form-control" required placeholder="12 Digit Aadhar">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>Email</label>
+                        <input type="email" name="email" class="form-control" required placeholder="email@example.com">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label>Phone</label>
+                        <input type="text" name="phone" class="form-control" required placeholder="Mobile Number">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label>City</label>
+                        <input type="text" name="city" class="form-control" required placeholder="City">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label>Password</label>
+                        <input type="password" name="password" class="form-control" required placeholder="Create Password">
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label>Address</label>
+                    <textarea name="address" class="form-control" rows="2" required placeholder="Organization Address"></textarea>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-info fw-bold text-dark">Create Host</button>
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-light">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
