@@ -6,6 +6,7 @@
     <title>{% block title %}LifeFlow Blood Bank{% endblock %}</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
     <style>
         :root {
@@ -70,6 +71,50 @@
 
         /* Footer */
         footer { background-color: var(--charcoal); color: white; padding: 3rem 0; margin-top: auto; }
+
+        /* --- CHATBOT & EMERGENCY STYLES --- */
+        .floating-container { position: fixed; bottom: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 15px; }
+        .emergency-float { left: 20px; bottom: 20px; position: fixed; z-index: 9999; }
+        .chat-float { right: 20px; bottom: 20px; position: fixed; z-index: 9999; }
+
+        /* EMERGENCY BUTTON */
+        .btn-emergency {
+            background: #dc3545; color: white; width: 60px; height: 60px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 24px; box-shadow: 0 4px 15px rgba(220, 53, 69, 0.5);
+            border: none; transition: transform 0.3s; text-decoration: none;
+            animation: pulse-red 2s infinite;
+        }
+        .btn-emergency:hover { transform: scale(1.1); color: white; }
+
+        /* CHAT BUTTON */
+        .btn-chat {
+            background: #0d6efd; color: white; width: 60px; height: 60px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 28px; box-shadow: 0 4px 15px rgba(13, 110, 253, 0.5);
+            border: none; cursor: pointer; transition: transform 0.3s;
+        }
+        .btn-chat:hover { transform: scale(1.1); }
+
+        /* CHAT WINDOW */
+        .chat-window {
+            display: none; position: fixed; bottom: 90px; right: 20px;
+            width: 350px; height: 450px; background: white; border-radius: 15px;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.2); flex-direction: column;
+            overflow: hidden; z-index: 10000; border: 1px solid #e0e0e0;
+        }
+        .chat-header { background: linear-gradient(135deg, #0d6efd, #0043a8); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .chat-body { flex: 1; padding: 15px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 10px; }
+        .chat-footer { padding: 10px; background: white; border-top: 1px solid #eee; display: flex; gap: 5px; }
+        .msg { max-width: 80%; padding: 8px 12px; border-radius: 15px; font-size: 14px; margin-bottom: 5px; }
+        .msg-bot { background: #e7f1ff; color: #000; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .msg-user { background: #0d6efd; color: white; align-self: flex-end; border-bottom-right-radius: 2px; }
+
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
     </style>
 </head>
 <body>
@@ -124,6 +169,83 @@
             <small class="text-white-50">Saving Lives Since 2025</small>
         </div>
     </footer>
+
+    <div class="emergency-float">
+        <a href="tel:+919876543210" class="btn-emergency" title="Emergency Call">
+            <i class="bi bi-telephone-fill"></i>
+        </a>
+    </div>
+
+    <div class="chat-float">
+        <button class="btn-chat" onclick="toggleChat()">
+            <i class="bi bi-robot"></i>
+        </button>
+    </div>
+
+    <div class="chat-window" id="chatWindow">
+        <div class="chat-header">
+            <div class="fw-bold"><i class="bi bi-robot me-2"></i> LifeFlow AI</div>
+            <button onclick="toggleChat()" class="btn-close btn-close-white"></button>
+        </div>
+        <div class="chat-body" id="chatBody">
+            <div class="msg msg-bot">Hello! 👋 I am the LifeFlow AI Assistant. How can I help you today?</div>
+            <div class="msg msg-bot">Try asking: "How to donate?", "Find hospitals", or "Emergency".</div>
+        </div>
+        <div class="chat-footer">
+            <input type="text" id="chatInput" class="form-control" placeholder="Type a message..." onkeypress="handleEnter(event)">
+            <button class="btn btn-primary" onclick="sendMessage()"><i class="bi bi-send-fill"></i></button>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleChat() {
+            var chat = document.getElementById('chatWindow');
+            if (chat.style.display === 'flex') {
+                chat.style.display = 'none';
+            } else {
+                chat.style.display = 'flex';
+            }
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        function sendMessage() {
+            var input = document.getElementById('chatInput');
+            var message = input.value.trim();
+            if (message === "") return;
+
+            addMessage(message, 'user');
+            input.value = "";
+
+            setTimeout(() => {
+                var botReply = getBotResponse(message.toLowerCase());
+                addMessage(botReply, 'bot');
+            }, 600);
+        }
+
+        function addMessage(text, sender) {
+            var chatBody = document.getElementById('chatBody');
+            var div = document.createElement('div');
+            div.classList.add('msg', sender === 'user' ? 'msg-user' : 'msg-bot');
+            div.innerText = text;
+            chatBody.appendChild(div);
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        function getBotResponse(msg) {
+            if (msg.includes('hello') || msg.includes('hi')) return "Hello! How can I save a life today? 🩸";
+            if (msg.includes('emergency') || msg.includes('urgent') || msg.includes('need blood')) return "🚨 FOR EMERGENCIES: Please click the RED phone button on the left immediately or call 108!";
+            if (msg.includes('donate') || msg.includes('give blood')) return "That's wonderful! ❤️ Please login and check 'Upcoming Camps' or visit a nearby hospital.";
+            if (msg.includes('stock') || msg.includes('available')) return "You can see the live blood stock on our Home Page dashboard.";
+            if (msg.includes('certificate')) return "You can download your donation certificate from your Donor Dashboard after the hospital approves your donation.";
+            if (msg.includes('camp')) return "We have several camps scheduled! Check the 'Upcoming Camps' section on the home page.";
+            if (msg.includes('login') || msg.includes('password')) return "Click the 'Login' button at the top right. If you forgot your password, contact Admin.";
+            
+            return "I'm still learning! 🤔 You can ask me about donating, stock, or emergency contacts.";
+        }
+    </script>
 </body>
 </html>
