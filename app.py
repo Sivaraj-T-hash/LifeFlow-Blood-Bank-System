@@ -1,3 +1,5 @@
+import smtplib
+from email.message import EmailMessage
 import sqlite3
 import csv
 import os
@@ -113,7 +115,41 @@ def check_eligibility(user_id):
     return True, 0
 
 # --- ROUTES ---
+# --- HELPER: AUTOMATED EMAIL CONFIRMATION ---
+def send_confirmation_email(recipient_email, donor_name, hospital_name, book_date, time_slot):
+    try:
+        # Your specific LifeFlow credentials
+        SENDER_EMAIL = "life.flow.blood.donation.09@gmail.com" 
+        APP_PASSWORD = "myqdidztbciuxpoh" # Spaces removed for the code
 
+        msg = EmailMessage()
+        msg['Subject'] = f"LifeFlow: Appointment Confirmed - {hospital_name}"
+        msg['From'] = SENDER_EMAIL
+        msg['To'] = recipient_email
+        
+        content = f"""
+        Dear {donor_name},
+        
+        Your blood donation appointment has been successfully booked!
+        
+        📅 Date: {book_date}
+        ⏰ Time: {time_slot}
+        🏥 Hospital: {hospital_name}
+        
+        Thank you for being a hero and saving lives!
+        
+        Regards,
+        The LifeFlow Team
+        """
+        msg.set_content(content)
+        
+        # Connect to Gmail SMTP server using secure SSL
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+            smtp.login(SENDER_EMAIL, APP_PASSWORD)
+            smtp.send_message(msg)
+            
+    except Exception as e:
+        print(f"Email sending failed: {e}") # Fails silently so the app doesn't crash
 @app.route('/')
 def index():
     conn = get_db_connection()
