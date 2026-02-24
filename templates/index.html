@@ -1,6 +1,63 @@
 {% extends 'layout.html' %}
 
 {% block content %}
+
+{% if leaderboard %}
+<div class="modal fade" id="welcomeLeaderboardModal" tabindex="-1" aria-labelledby="welcomeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content premium-modal shadow-lg">
+            
+            <div class="position-absolute w-100 h-100 top-0 start-0 rounded-4" style="background: radial-gradient(circle at top, rgba(255,215,0,0.1), transparent 60%); pointer-events: none;"></div>
+
+            <div class="modal-header border-0 pt-4 pb-2 position-relative z-1 d-flex flex-column align-items-center">
+                <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+                <i class="bi bi-stars fs-1 mb-2" style="color: #FFDF00; filter: drop-shadow(0 0 10px rgba(255,215,0,0.6));"></i>
+                <h3 class="modal-title fw-bolder text-uppercase gold-text" style="font-family: 'Poppins', sans-serif; letter-spacing: 2px;">Wall of Heroes</h3>
+                <p class="text-white-50 small mb-0 fw-bold" style="letter-spacing: 1px;">TOP DONORS OF THE MONTH</p>
+            </div>
+            
+            <div class="modal-body p-4 position-relative z-1">
+                <div class="d-flex flex-column gap-4 mt-2">
+                    {% for donor in leaderboard %}
+                    
+                    {% set metal_class = 'gold' if loop.index == 1 else 'silver' if loop.index == 2 else 'bronze' %}
+                    
+                    <div class="d-flex align-items-center p-3 rounded-4 position-relative overflow-hidden plaque-card">
+                        <div class="position-absolute w-100 h-100 top-0 start-0 bg-{{ metal_class }}-subtle"></div>
+                        
+                        <div class="position-relative me-4 ms-2 z-1" style="margin-bottom: 8px;"> 
+                            <div class="rounded-circle d-flex justify-content-center align-items-center ring-{{ metal_class }} shadow-{{ metal_class }}" style="width: 75px; height: 75px; padding: 4px;">
+                                <div class="rounded-circle d-flex justify-content-center align-items-center bg-black w-100 h-100 border border-dark">
+                                    <i class="bi bi-trophy-fill text-{{ metal_class }} fs-3" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));"></i>
+                                </div>
+                            </div>
+                            <div class="ribbon ribbon-{{ metal_class }} rounded-1">
+                                {{ loop.index }}{{ 'st' if loop.index == 1 else 'nd' if loop.index == 2 else 'rd' }} place
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 z-1 pt-2">
+                            <h5 class="mb-0 fw-bolder text-white text-uppercase text-truncate" style="letter-spacing: 1px; max-width: 150px;">{{ donor['name'] }}</h5>
+                            <small class="text-white-50 fw-bold" style="font-size: 0.75rem;">Blood Group: <span class="text-{{ metal_class }} ms-1">{{ donor['blood_group'] }}</span></small>
+                        </div>
+                        
+                        <div class="text-end z-1 pe-2 pt-2">
+                            <div class="text-{{ metal_class }} fw-bolder fs-3" style="line-height: 1; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.8));">
+                                {{ (donor['total_volume'] / 1000) | round(1) }}<span class="fs-6 ms-1">L</span>
+                            </div>
+                            <small class="text-white-50" style="font-size: 0.6rem; letter-spacing: 1.5px;">DONATED</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="modal-footer border-0 d-flex justify-content-center pb-4 position-relative z-1">
+                <button type="button" class="btn btn-outline-light rounded-pill px-5 py-2 fw-bold text-uppercase hover-glow" style="letter-spacing: 1px;" data-bs-dismiss="modal">Enter LifeFlow</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 <div class="container-fluid p-0 mb-4">
     {% if gallery_photos %}
     <div id="eventCarousel" class="carousel slide shadow-lg" data-bs-ride="carousel">
@@ -45,85 +102,380 @@
         </a>
         <p class="text-muted mt-2 small">Get the LifeFlow app for faster access</p>
     </div>
+
     <div class="row text-center mb-5">
         <div class="col-md-4 mb-3">
-            <div class="card p-4 shadow-sm border-0" style="background: linear-gradient(135deg, #ffffff, #f8f9fa);">
+            <div class="card p-4 shadow-sm border-0 stat-card" style="background: linear-gradient(135deg, #ffffff, #f8f9fa);">
                 <h1 class="text-danger fw-bold display-4">{{ total_donors }}</h1>
                 <p class="text-muted fw-bold small ls-1">REGISTERED DONORS</p>
             </div>
         </div>
         <div class="col-md-4 mb-3">
-            <div class="card p-4 shadow-sm border-0" style="background: linear-gradient(135deg, #ffffff, #f8f9fa);">
+            <div class="card p-4 shadow-sm border-0 stat-card" style="background: linear-gradient(135deg, #ffffff, #f8f9fa);">
                 <h1 class="text-danger fw-bold display-4">{{ total_units }}</h1>
                 <p class="text-muted fw-bold small ls-1">UNITS COLLECTED</p>
             </div>
         </div>
         <div class="col-md-4 mb-3">
-            <div class="card p-4 shadow-sm border-0" style="background: linear-gradient(135deg, #ffffff, #f8f9fa);">
+            <div class="card p-4 shadow-sm border-0 stat-card" style="background: linear-gradient(135deg, #ffffff, #f8f9fa);">
                 <h1 class="text-danger fw-bold display-4">{{ lives_saved }}</h1>
                 <p class="text-muted fw-bold small ls-1">LIVES IMPACTED</p>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <div class="col-lg-8 mb-4">
-            <div class="d-flex align-items-center mb-3">
-                <h4 class="text-secondary fw-bold mb-0">Upcoming Donation Camps</h4>
-            </div>
-            
-            {% for camp in upcoming_camps %}
-            <div class="card mb-3 shadow-sm border-0 camp-card" style="border-left: 5px solid #ffc107 !important;">
-                <div class="card-body d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="d-flex align-items-center mb-1">
-                            <div class="bg-warning text-dark fw-bold rounded p-2 text-center me-3" style="min-width: 60px;">
-                                <span class="d-block h4 mb-0">{{ camp['date'].split('-')[2] }}</span>
-                                <span class="small text-uppercase">
-                                    {{ ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][camp['date'].split('-')[1]|int - 1] }}
-                                </span>
-                            </div>
-                            <div>
-                                <h5 class="card-title fw-bold mb-1">{{ camp['name'] }}</h5>
-                                <p class="text-muted small mb-0"><i class="bi bi-geo-alt"></i> {{ camp['location_name'] }}, {{ camp['city'] }}</p>
-                                <small class="text-muted"><i class="bi bi-clock"></i> {{ camp['time'] }}</small>
-                            </div>
+    <div class="mb-5">
+        <div class="text-center mb-4">
+            <span class="badge bg-danger-subtle text-danger rounded-pill px-3 py-2 mb-2 fw-bold">
+                <i class="bi bi-activity"></i> LIVE STATUS
+            </span>
+            <h2 class="fw-bolder text-dark">Current Blood Availability</h2>
+            <p class="text-muted small">Real-time aggregated blood units available across all network hospitals.</p>
+        </div>
+        
+        <div class="row justify-content-center g-3">
+            {% for group, count in blood_stock.items() %}
+            <div class="col-6 col-md-3 col-lg-auto" style="width: 160px;">
+                <div class="card border-0 shadow-sm text-center h-100 blood-stock-card hover-scale">
+                    <div class="card-body p-3 d-flex flex-column justify-content-center align-items-center">
+                        <div class="position-relative d-flex align-items-center justify-content-center mb-2" style="height: 60px; width: 60px;">
+                            <i class="bi bi-droplet-fill text-danger position-absolute" style="font-size: 4rem; opacity: 0.08;"></i>
+                            <h2 class="fw-bolder text-danger mb-0 position-relative z-1" style="font-family: 'Poppins', sans-serif;">{{ group }}</h2>
                         </div>
-                    </div>
-                    <div class="text-end">
-                        <span class="badge bg-success mb-2">{{ camp['registered_count'] }} / {{ camp['estimated_participants'] }} Joined</span><br>
-                        {% if session.get('role') == 'user' %}
-                        <form action="{{ url_for('book_appointment') }}" method="POST">
-                            <input type="hidden" name="booking_type" value="camp">
-                            <input type="hidden" name="camp_id" value="{{ camp['id'] }}">
-                            <button class="btn btn-outline-dark btn-sm">Join</button>
-                        </form>
+                        {% if count > 0 %}
+                            <span class="badge bg-success bg-opacity-10 text-success border border-success rounded-pill w-100 py-2 mt-2 fw-bold">
+                                {{ count }} Units Ready
+                            </span>
                         {% else %}
-                            <a href="{{ url_for('login') }}" class="btn btn-outline-dark btn-sm">Join</a>
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger rounded-pill w-100 py-2 mt-2 fw-bold heartbeat-soft">
+                                Critical Shortage
+                            </span>
                         {% endif %}
                     </div>
                 </div>
             </div>
-            {% else %}
-            <div class="alert alert-light border text-center text-muted">No upcoming camps scheduled at the moment.</div>
             {% endfor %}
         </div>
+    </div>
 
-        <div class="col-lg-4">
-            <h4 class="text-secondary fw-bold mb-3">Current Stock</h4>
-            <div class="row g-2">
-                {% for group, count in blood_stock.items() %}
-                <div class="col-6">
-                    <div class="p-3 rounded text-center text-white position-relative shadow-sm" style="background-color: #dc3545;">
-                        <span class="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-light text-danger border border-danger">
-                            {{ count }}
-                        </span>
-                        <h5 class="mb-0 fw-bold">{{ group }}</h5>
+    <div class="mb-5 p-4 p-md-5 rounded-4 shadow-sm border-0" style="background: #ffffff;">
+        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+            <div>
+                <h3 class="fw-bolder text-dark mb-1"><i class="bi bi-calendar-event text-warning me-2"></i> Upcoming Campaigns</h3>
+                <p class="text-muted small mb-0">Join a local drive and help us save lives in your community.</p>
+            </div>
+            <a href="{{ url_for('map_page') }}" class="btn btn-outline-danger btn-sm rounded-pill fw-bold px-4 d-none d-md-block">
+                <i class="bi bi-pin-map-fill"></i> View on Map
+            </a>
+        </div>
+        
+        <div class="row g-4">
+            {% for camp in upcoming_camps %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm border-0 hover-scale" style="border-left: 5px solid #ffc107 !important; border-radius: 12px;">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-warning text-dark fw-bold rounded-3 p-2 text-center me-3 shadow-sm" style="min-width: 65px;">
+                                <span class="d-block h3 mb-0">{{ camp['date'].split('-')[2] }}</span>
+                                <span class="small text-uppercase fw-bolder" style="letter-spacing: 1px;">
+                                    {{ ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][camp['date'].split('-')[1]|int - 1] }}
+                                </span>
+                            </div>
+                            <div>
+                                <h5 class="fw-bold mb-1 text-dark">{{ camp['name'] }}</h5>
+                                <p class="text-muted small mb-0"><i class="bi bi-geo-alt-fill text-danger"></i> {{ camp['location_name'] }}, {{ camp['city'] }}</p>
+                                <small class="text-muted fw-bold"><i class="bi bi-clock-fill text-primary"></i> {{ camp['time'] }}</small>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top border-light">
+                            <span class="badge bg-success-subtle text-success border border-success rounded-pill px-3 py-2">
+                                <i class="bi bi-people-fill"></i> {{ camp['registered_count'] }} / {{ camp['estimated_participants'] }} Joined
+                            </span>
+                            {% if session.get('role') == 'user' %}
+                            <form action="{{ url_for('book_appointment') }}" method="POST" class="m-0">
+                                <input type="hidden" name="booking_type" value="camp">
+                                <input type="hidden" name="camp_id" value="{{ camp['id'] }}">
+                                <button class="btn btn-dark btn-sm rounded-pill px-3 fw-bold shadow-sm">Join Now</button>
+                            </form>
+                            {% else %}
+                                <a href="{{ url_for('login') }}" class="btn btn-dark btn-sm rounded-pill px-3 fw-bold shadow-sm">Join Now</a>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
-                {% endfor %}
             </div>
+            {% else %}
+            <div class="col-12">
+                <div class="alert alert-light border border-2 border-dashed text-center py-5 rounded-4">
+                    <i class="bi bi-calendar-x display-4 text-muted mb-3 d-block"></i>
+                    <h5 class="text-muted fw-bold">No upcoming camps scheduled at the moment.</h5>
+                    <p class="text-muted small">Check back soon for new drives in your area!</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="mb-5 p-4 p-md-5 rounded-4 shadow-sm border-0" style="background: linear-gradient(180deg, #ffffff 0%, #f4f6f9 100%);">
+        <div class="row justify-content-center mb-5">
+            <div class="col-lg-8 text-center">
+                <span class="badge bg-dark text-warning rounded-pill px-4 py-2 mb-3 fw-bold shadow-sm" style="letter-spacing: 2px;">
+                    <i class="bi bi-star-fill me-2"></i>HALL OF FAME
+                </span>
+                <h2 class="fw-bolder display-6 mb-3 text-dark" style="font-family: 'Poppins', sans-serif;">Top Donor Leaderboard</h2>
+                <p class="text-muted mx-auto fs-6">
+                    Celebrating our true heroes who have given the most Gift of Life. Every drop counts.
+                </p>
+            </div>
+        </div>
+
+        <div class="row px-2 px-md-5 justify-content-center align-items-end" style="min-height: 350px;">
+            {% for donor in leaderboard %}
+            {% if loop.index == 1 %}
+                {% set order_class = 'order-1 order-md-2 z-index-3' %}
+                {% set height_class = 'podium-gold' %}
+            {% elif loop.index == 2 %}
+                {% set order_class = 'order-2 order-md-1 z-index-2' %}
+                {% set height_class = 'podium-silver mt-4 mt-md-5' %}
+            {% elif loop.index == 3 %}
+                {% set order_class = 'order-3 order-md-3 z-index-1' %}
+                {% set height_class = 'podium-bronze mt-4 mt-md-5' %}
+            {% endif %}
+
+            <div class="col-md-4 col-sm-10 {{ order_class }} px-2 px-md-3 mb-4 mb-md-0">
+                <div class="card text-center position-relative leaderboard-card rank-{{ loop.index }} {{ height_class }}">
+                    <div class="rank-badge position-absolute start-50 translate-middle rounded-circle d-flex align-items-center justify-content-center rank-bg-{{ loop.index }}">
+                        {% if loop.index == 1 %}
+                            <i class="bi bi-award-fill text-white fs-1 drop-shadow"></i> 
+                        {% elif loop.index == 2 %}
+                            <span class="fs-2 fw-bolder text-white drop-shadow">2</span>
+                        {% elif loop.index == 3 %}
+                            <span class="fs-2 fw-bolder text-white drop-shadow">3</span>
+                        {% endif %}
+                    </div>
+                    <div class="card-body pt-5 pb-4 px-3 rounded-4 bg-white d-flex flex-column align-items-center justify-content-center">
+                        <div class="mb-3 mt-3 d-inline-block p-1 rounded-circle profile-ring-{{ loop.index }}">
+                            <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 75px; height: 75px;">
+                                <i class="bi bi-person-fill display-5 text-secondary opacity-50"></i>
+                            </div>
+                        </div>
+                        <h4 class="fw-bolder mb-2 text-dark text-truncate w-100 px-2" style="font-family: 'Poppins', sans-serif;">{{ donor['name'] }}</h4>
+                        <span class="badge bg-danger mb-4 px-3 py-2 shadow-sm rounded-pill">{{ donor['blood_group'] }}</span>
+                        <div class="w-100 py-3 rounded-3" style="background-color: #fff5f5; border: 1px dashed #ffb3b3;">
+                            <div class="d-flex align-items-center justify-content-center text-danger">
+                                <i class="bi bi-droplet-fill me-2 fs-4"></i>
+                                <span class="fs-2 fw-bolder" style="line-height: 1;">{{ (donor['total_volume'] / 1000) | round(1) }}</span>
+                                <span class="ms-1 fw-bold align-self-end mb-1">Liters</span>
+                            </div>
+                            <div class="small text-danger fw-bold mt-1 text-uppercase" style="letter-spacing: 1px; font-size: 0.7rem;">Total Donated</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-12 text-center py-5">
+                <i class="bi bi-trophy display-1 text-muted opacity-25"></i>
+                <p class="text-muted mt-3 fs-5 fw-bold">No approved donations yet. Be the first hero!</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div id="hospital-inventory" class="mb-5 p-4 p-md-5 rounded-4 shadow-sm border-0" style="background: #ffffff; scroll-margin-top: 90px;">
+        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+            <div>
+                <h3 class="fw-bolder text-dark mb-1"><i class="bi bi-building-add text-danger"></i> Live Hospital Inventory</h3>
+                <p class="text-muted small mb-0">Check real-time blood availability across registered hospitals in your region.</p>
+            </div>
+            <div class="w-25">
+                <select id="cityFilter" class="form-select border-danger fw-bold text-danger shadow-sm" onchange="filterHospitals()">
+                    <option value="all">📍 All Regions</option>
+                    <option value="Chennai" selected>📍 Chennai</option>
+                    <option value="Coimbatore">📍 Coimbatore (Coming Soon)</option>
+                    <option value="Madurai">📍 Madurai (Coming Soon)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="row g-4" id="hospitalGrid">
+            {% for h in hospital_list %}
+            <div class="col-md-4 hospital-card" data-city="{{ h.city }}">
+                <div class="card h-100 border-0 shadow-sm p-3 hover-scale" style="background: linear-gradient(135deg, #fdfdfd 0%, #f4f6f9 100%); border-left: 5px solid #dc3545 !important; border-radius: 12px;">
+                    <h5 class="fw-bold text-dark mb-1 text-truncate" title="{{ h.name }}">{{ h.name }}</h5>
+                    <span class="badge bg-secondary mb-3 d-inline-block" style="width: fit-content;">{{ h.type }} Hospital</span>
+                    
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-envelope-fill text-muted me-2"></i>
+                        <span class="text-muted small text-truncate">{{ h.contact }}</span>
+                    </div>
+                    
+                    <div class="mt-auto pt-3 border-top border-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-dark small text-uppercase">Available Units:</span>
+                            <span class="badge {% if h.total_stock > 0 %}bg-success{% else %}bg-danger{% endif %} fs-6 px-3 py-2 shadow-sm rounded-pill">
+                                {% if h.total_stock > 0 %}
+                                    <i class="bi bi-check-circle-fill me-1"></i> {{ h.total_stock }} Units
+                                {% else %}
+                                    <i class="bi bi-x-circle-fill me-1"></i> Out of Stock
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="col-12 text-center text-muted">No hospitals registered yet.</div>
+            {% endfor %}
         </div>
     </div>
 </div>
+
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;700;800&display=swap');
+
+    /* ================= NEW: PREMIUM MODAL CSS ================= */
+    .premium-modal {
+        background-color: #0f0f11 !important;
+        border-radius: 24px !important;
+        border: 1px solid #333;
+    }
+    
+    .gold-text {
+        background: linear-gradient(135deg, #FFDF00 0%, #D4AF37 50%, #FFDF00 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        text-shadow: 0px 4px 15px rgba(255, 215, 0, 0.2);
+    }
+    
+    .plaque-card {
+        background-color: #1a1a1c;
+        border: 1px solid #2a2a2c;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .plaque-card:hover { transform: scale(1.02); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    
+    /* Medal Exact Image Recreations */
+    .ring-gold { background: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C); }
+    .text-gold { color: #FFDF00 !important; }
+    .shadow-gold { box-shadow: 0 0 25px rgba(255, 215, 0, 0.4); }
+    .bg-gold-subtle { background: linear-gradient(90deg, rgba(255,215,0,0.1), transparent); }
+
+    .ring-silver { background: linear-gradient(135deg, #B5B5B5, #FFFFFF, #CCCCCC, #999999, #E6E6E6); }
+    .text-silver { color: #E0E0E0 !important; }
+    .shadow-silver { box-shadow: 0 0 20px rgba(192, 192, 192, 0.3); }
+    .bg-silver-subtle { background: linear-gradient(90deg, rgba(192,192,192,0.1), transparent); }
+
+    .ring-bronze { background: linear-gradient(135deg, #8C4E03, #E1A15C, #C47A2B, #9E5B15, #D28F44); }
+    .text-bronze { color: #E1A15C !important; }
+    .shadow-bronze { box-shadow: 0 0 20px rgba(205, 127, 50, 0.3); }
+    .bg-bronze-subtle { background: linear-gradient(90deg, rgba(205,127,50,0.1), transparent); }
+
+    /* The Black Ribbon */
+    .ribbon {
+        background-color: #000000;
+        text-transform: uppercase;
+        font-weight: 900;
+        font-size: 0.65rem;
+        letter-spacing: 1px;
+        padding: 4px 12px;
+        position: absolute;
+        top: 90%; /* Overlap bottom of medal */
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.9);
+    }
+    .ribbon-gold { border: 1px solid #D4AF37; color: #FFDF00; }
+    .ribbon-silver { border: 1px solid #CCCCCC; color: #FFFFFF; }
+    .ribbon-bronze { border: 1px solid #CD7F32; color: #E1A15C; }
+
+    .hover-glow:hover {
+        background-color: white !important;
+        color: black !important;
+        box-shadow: 0 0 25px rgba(255,255,255,0.4);
+        transform: translateY(-2px);
+    }
+    /* ========================================================== */
+
+    @keyframes slideUpFade {
+        0% { opacity: 0; transform: translateY(50px); }
+        100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes heartbeat-soft {
+        0% { opacity: 1; }
+        50% { opacity: 0.6; }
+        100% { opacity: 1; }
+    }
+    .heartbeat-soft { animation: heartbeat-soft 2s infinite; }
+
+    .blood-stock-card {
+        border-radius: 16px !important;
+        background: linear-gradient(145deg, #ffffff, #fffdfd);
+        border: 1px solid rgba(220, 53, 69, 0.08) !important;
+    }
+    .blood-stock-card:hover { border-color: #dc3545 !important; box-shadow: 0 10px 25px rgba(220, 53, 69, 0.15) !important; }
+
+    @keyframes goldPulse {
+        0% { box-shadow: 0 10px 20px rgba(255, 215, 0, 0.2), 0 0 0 0 rgba(255, 215, 0, 0.4); }
+        50% { box-shadow: 0 15px 30px rgba(255, 215, 0, 0.4), 0 0 0 15px rgba(255, 215, 0, 0); }
+        100% { box-shadow: 0 10px 20px rgba(255, 215, 0, 0.2), 0 0 0 0 rgba(255, 215, 0, 0); }
+    }
+
+    .leaderboard-card {
+        border: none !important;
+        border-radius: 20px !important;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        opacity: 0; 
+        animation: slideUpFade 0.8s ease forwards;
+    }
+    .leaderboard-card:hover { transform: translateY(-15px); }
+    .drop-shadow { filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.3)); }
+    .z-index-3 { z-index: 3; } .z-index-2 { z-index: 2; } .z-index-1 { z-index: 1; }
+    .hover-scale { transition: transform 0.3s ease; }
+    .hover-scale:hover { transform: translateY(-5px); }
+
+    .rank-badge {
+        top: -15px !important; 
+        width: 75px; 
+        height: 75px;
+        border: 4px solid #ffffff;
+        box-shadow: 0 8px 15px rgba(0,0,0,0.15);
+    }
+    .rank-1 { animation-delay: 0.4s; box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2); }
+    .podium-gold { transform: scale(1.08); border: 2px solid #FFD700 !important; animation: slideUpFade 0.8s ease 0.4s forwards, goldPulse 3s infinite 1.2s; }
+    .podium-gold:hover { transform: scale(1.1) translateY(-10px); }
+    .rank-bg-1 { background: linear-gradient(135deg, #FFDF00, #D4AF37, #B8860B); }
+    .profile-ring-1 { background: linear-gradient(135deg, #FFDF00, #D4AF37); }
+    .rank-2 { animation-delay: 0.2s; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 2px solid #E0E0E0 !important;}
+    .rank-bg-2 { background: linear-gradient(135deg, #E0E0E0, #9E9E9E, #757575); }
+    .profile-ring-2 { background: linear-gradient(135deg, #E0E0E0, #9E9E9E); }
+    .rank-3 { animation-delay: 0.6s; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 2px solid #CD7F32 !important; }
+    .rank-bg-3 { background: linear-gradient(135deg, #CD7F32, #A0522D, #8B4513); }
+    .profile-ring-3 { background: linear-gradient(135deg, #CD7F32, #A0522D); }
+</style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        if (!sessionStorage.getItem('leaderboardShown')) {
+            var myModal = new bootstrap.Modal(document.getElementById('welcomeLeaderboardModal'));
+            myModal.show();
+            sessionStorage.setItem('leaderboardShown', 'true');
+        }
+        filterHospitals();
+    });
+
+    function filterHospitals() {
+        let selected = document.getElementById('cityFilter').value;
+        let cards = document.querySelectorAll('.hospital-card');
+        
+        cards.forEach(card => {
+            if (selected === 'all' || card.getAttribute('data-city') === selected) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+</script>
+
 {% endblock %}

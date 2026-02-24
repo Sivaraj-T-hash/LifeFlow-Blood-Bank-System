@@ -1,0 +1,14 @@
+# Environments
+env/
+venv/
+__pycache__/
+
+# Python cache files
+*.pyc
+
+# IDEs
+.vscode/
+
+# Ignore uploaded photos (optional, but good practice so your repo isn't huge)
+static/uploads/*
+!static/uploads/.gitkeep

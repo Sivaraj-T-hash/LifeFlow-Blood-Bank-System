@@ -6,7 +6,91 @@
         <span class="badge bg-info text-dark">Staff Access</span>
     </div>
 
+    <div class="glass-card mb-4 border-danger border-3 shadow-lg" style="background-color: rgba(255, 0, 0, 0.05); padding: 15px; border-radius: 10px; border: 2px solid #dc3545;">
+        <div class="p-3 border-bottom border-danger d-flex justify-content-between align-items-center">
+            <h4 class="text-danger fw-bolder mb-0"><i class="bi bi-geo-alt-fill heartbeat"></i> SOS EMERGENCY: Find Nearest Donors</h4>
+            <span class="badge bg-danger">GPS Haversine Engine Active</span>
+        </div>
+        <div class="p-4">
+            <p class="text-muted small mb-3">Uses advanced spherical trigonometry (Haversine formula) in the database engine to locate the physical coordinates of donors within a 15km radius of this hospital.</p>
+            
+            <form action="{{ url_for('hospital_sos') }}" method="POST" class="d-flex align-items-center gap-3 mb-4">
+                <label class="fw-bold text-dark">Required Blood Type:</label>
+                <select name="blood_group" class="form-select w-25 border-danger text-danger fw-bold">
+                    <option value="A+">A+</option><option value="A-">A-</option>
+                    <option value="B+">B+</option><option value="B-">B-</option>
+                    <option value="O+">O+</option><option value="O-">O-</option>
+                    <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                </select>
+                <button type="submit" class="btn btn-danger fw-bold px-4"><i class="bi bi-search"></i> SCAN RADAR</button>
+            </form>
+
+            {% if nearest_donors %}
+            <div class="table-responsive bg-dark p-2 rounded shadow">
+                <h5 class="text-warning mb-3 mt-2"><i class="bi bi-broadcast"></i> Radar Results for {{ sos_bg }}</h5>
+                <table class="table table-dark table-hover align-middle mb-0">
+                    <thead>
+                        <tr class="text-danger">
+                            <th>Donor Name</th>
+                            <th>Contact</th>
+                            <th>Location</th>
+                            <th>GPS Distance</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for donor in nearest_donors %}
+                        <tr>
+                            <td class="fw-bold text-white">{{ donor.name }}</td>
+                            <td class="text-info">{{ donor.phone }}</td>
+                            <td class="text-white">{{ donor.city }}</td>
+                            <td>
+                                <span class="badge bg-warning text-dark fs-6"><i class="bi bi-pin-map-fill"></i> {{ donor.distance_km }} km away</span>
+                            </td>
+                            <td><a href="tel:{{ donor.phone }}" class="btn btn-sm btn-success fw-bold">📞 CALL NOW</a></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        </div>
+    </div>
     <div class="row mb-4">
+        <div class="col-md-6 mb-3 mb-md-0">
+            <div class="glass-card h-100 border-success border-2 shadow-sm" style="border-radius: 10px; overflow: hidden;">
+                <div class="bg-success text-white p-3">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle-fill"></i> Update External Stock</h5>
+                </div>
+                <div class="p-3">
+                    <p class="text-muted small">Received blood from another source? Add it here to update the live public Map.</p>
+                    <form action="{{ url_for('hospital_update_stock') }}" method="POST">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-4">
+                                <label class="small text-muted fw-bold">Blood Group</label>
+                                <select name="blood_group" class="form-select form-select-sm border-success">
+                                    <option value="A+">A+</option><option value="A-">A-</option>
+                                    <option value="B+">B+</option><option value="B-">B-</option>
+                                    <option value="O+">O+</option><option value="O-">O-</option>
+                                    <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                                </select>
+                            </div>
+                            <div class="col-4">
+                                <label class="small text-muted fw-bold">Units Added</label>
+                                <input type="number" name="units" class="form-control form-control-sm border-success" placeholder="e.g. 10" required min="1">
+                            </div>
+                            <div class="col-4">
+                                <label class="small text-danger fw-bold">Login Password</label>
+                                <input type="password" name="password" class="form-control form-control-sm border-danger" placeholder="Verify to save" required>
+                            </div>
+                            <div class="col-12 mt-3">
+                                <button type="submit" class="btn btn-success btn-sm w-100 fw-bold">Add to Live Map Inventory</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
         <div class="col-md-6">
             <div class="glass-card h-100">
                 <h5 class="text-danger"><i class="bi bi-file-earmark-arrow-down"></i> Export Donation History</h5>
@@ -28,37 +112,6 @@
                                 <option value="B+">B+</option> <option value="B-">B-</option>
                                 <option value="O+">O+</option> <option value="O-">O-</option>
                                 <option value="AB+">AB+</option> <option value="AB-">AB-</option>
-                            </select>
-                        </div>
-                        <div class="col-12 mt-2 d-flex gap-2">
-                            <button type="submit" name="format" value="csv" class="btn btn-sm btn-outline-success w-50">Download CSV</button>
-                            <button type="submit" name="format" value="pdf" class="btn btn-sm btn-outline-danger w-50">Download PDF</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <div class="col-md-6">
-            <div class="glass-card h-100">
-                <h5 class="text-primary"><i class="bi bi-calendar-check"></i> Export Appointments</h5>
-                <form action="{{ url_for('hospital_export_appointments') }}" method="GET">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-4">
-                            <label class="small text-muted">Start Date</label>
-                            <input type="date" name="start_date" class="form-control form-control-sm">
-                        </div>
-                        <div class="col-4">
-                            <label class="small text-muted">End Date</label>
-                            <input type="date" name="end_date" class="form-control form-control-sm">
-                        </div>
-                        <div class="col-4">
-                            <label class="small text-muted">Status</label>
-                            <select name="status" class="form-select form-select-sm">
-                                <option value="all">All</option>
-                                <option value="Scheduled">Scheduled</option>
-                                <option value="Verified">Verified</option>
-                                <option value="Rejected">Rejected</option>
                             </select>
                         </div>
                         <div class="col-12 mt-2 d-flex gap-2">
@@ -155,4 +208,9 @@
         </div>
     </div>
 </div>
+
+<style>
+    @keyframes heartbeat { 0% { transform: scale(1); } 50% { transform: scale(1.3); color: #ffcccc; } 100% { transform: scale(1); } }
+    .heartbeat { display: inline-block; animation: heartbeat 1.5s infinite; }
+</style>
 {% endblock %}

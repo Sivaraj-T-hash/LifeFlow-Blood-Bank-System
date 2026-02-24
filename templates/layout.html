@@ -1,6 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+<style>
+    /* 2. Apply the modern font and a soft background to the whole site */
+    body {
+        font-family: 'Outfit', sans-serif !important;
+        background-color: #f4f7f6 !important; /* Soft off-white, looks much cleaner than pure white */
+        color: #2c3e50;
+    }
+
+    /* 3. Upgrade the Top Navigation Bar */
+    .navbar {
+        background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%) !important;
+        box-shadow: 0 4px 20px rgba(220, 53, 69, 0.2) !important;
+        padding: 15px 0 !important;
+    }
+    .navbar-brand {
+        font-weight: 800 !important;
+        letter-spacing: 1px;
+        font-size: 1.5rem !important;
+    }
+    .nav-link {
+        font-weight: 600 !important;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease !important;
+    }
+    .nav-link:hover {
+        transform: translateY(-2px);
+        color: #ffcccc !important;
+    }
+
+    /* 4. Make all Cards look sleek and floaty (Glassmorphism inspired) */
+    .card {
+        border: none !important;
+        border-radius: 20px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+        transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+        background: #ffffff;
+    }
+    .card:hover {
+        transform: translateY(-5px) !important;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* 5. Modernize all Buttons */
+    .btn {
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        padding: 10px 20px !important;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+    }
+    .btn:hover {
+        transform: translateY(-3px) !important;
+        box-shadow: 0 7px 14px rgba(0, 0, 0, 0.15) !important;
+    }
+    .btn-danger {
+        background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%) !important;
+        border: none !important;
+    }
+
+    /* 6. Smooth Input Fields */
+    .form-control, .form-select {
+        border-radius: 10px !important;
+        border: 2px solid #e9ecef !important;
+        padding: 12px 15px !important;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #ff4b2b !important;
+        box-shadow: 0 0 0 0.25rem rgba(255, 75, 43, 0.25) !important;
+    }
+</style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}LifeFlow Blood Bank{% endblock %}</title>
@@ -126,7 +201,13 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item"><a class="nav-link text-danger fw-bold" href="{{ url_for('public_sos') }}"><i class="bi bi-heart-pulse-fill"></i> SOS</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+                    <li class="nav-item">
+    <a class="nav-link fw-bold text-light" href="{{ url_for('index') }}#hospital-inventory">
+        <i class="bi bi-building-fill me-1"></i> Inventory
+    </a>
+</li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('map_page') }}">Find Center</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('about') }}">About Us</a></li>
                     

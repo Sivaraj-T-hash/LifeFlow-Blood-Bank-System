@@ -3,6 +3,8 @@ from email.message import EmailMessage
 import sqlite3
 import csv
 import os
+import math
+import random
 from io import StringIO
 from datetime import date, datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response
@@ -31,16 +33,35 @@ HOSPITALS_DATA = [
     {"name": "Rotary Central Blood Bank", "lat": 13.0587, "lng": 80.2642, "type": "NGO", "email": "rotary@ngo.org"}
 ]
 
+# =========================================================================
+# DBMS FEATURE: CUSTOM SCALAR FUNCTION FOR SPATIAL QUERIES
+# =========================================================================
+def haversine(lat1, lon1, lat2, lon2):
+    """Calculates the distance between two points on the earth using spherical trigonometry"""
+    try:
+        if None in (lat1, lon1, lat2, lon2) or "" in (lat1, lon1, lat2, lon2): return 9999.0
+        lat1, lon1, lat2, lon2 = float(lat1), float(lon1), float(lat2), float(lon2)
+        R = 6371.0 # Radius of Earth in km
+        dLat = math.radians(lat2 - lat1)
+        dLon = math.radians(lon2 - lon1)
+        a = math.sin(dLat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dLon/2)**2
+        c = 2 * math.asin(math.sqrt(a))
+        return R * c
+    except:
+        return 9999.0
+
 def get_db_connection():
     conn = sqlite3.connect('bloodbank.db')
     conn.row_factory = sqlite3.Row
+    # Inject our Python math function directly into the SQLite database engine!
+    conn.create_function("haversine", 4, haversine) 
     return conn
 
 def init_db():
     conn = sqlite3.connect('bloodbank.db')
     c = conn.cursor()
     
-    # Create Tables
+    # 1. Existing Tables
     c.execute('''CREATE TABLE IF NOT EXISTS donors 
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, age INTEGER, weight REAL, 
                   blood_group TEXT, city TEXT, address TEXT, phone TEXT UNIQUE, password TEXT, role TEXT DEFAULT 'user')''')
@@ -77,6 +98,59 @@ def init_db():
                  (id INTEGER PRIMARY KEY AUTOINCREMENT, camp_id INTEGER, filename TEXT,
                   FOREIGN KEY(camp_id) REFERENCES camps(id))''')
 
+    # =========================================================================
+    # NEW FEATURE: EXTERNAL HOSPITAL STOCK TRACKER (For Map)
+    # =========================================================================
+    c.execute('''CREATE TABLE IF NOT EXISTS hospital_stock 
+                 (id INTEGER PRIMARY KEY AUTOINCREMENT, hospital_id INTEGER, blood_group TEXT, units INTEGER,
+                  UNIQUE(hospital_id, blood_group))''')
+
+    # =========================================================================
+    # DBMS FEATURE 1: B-TREE INDEXING FOR PERFORMANCE OPTIMIZATION
+    # =========================================================================
+    c.execute("CREATE INDEX IF NOT EXISTS idx_donor_bg ON donors(blood_group)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_donation_status ON donations(status)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_appointment_status ON appointments(status)")
+
+    # =========================================================================
+    # DBMS FEATURE 2: DATABASE TRIGGERS FOR SECURITY AUDITING
+    # =========================================================================
+    c.execute('''CREATE TABLE IF NOT EXISTS security_audit_log
+                 (log_id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                  table_name TEXT, 
+                  action_type TEXT, 
+                  record_id INTEGER, 
+                  old_status TEXT, 
+                  new_status TEXT, 
+                  action_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)''')
+
+    c.execute('''CREATE TRIGGER IF NOT EXISTS audit_donation_update 
+                 AFTER UPDATE OF status ON donations 
+                 BEGIN 
+                     INSERT INTO security_audit_log (table_name, action_type, record_id, old_status, new_status) 
+                     VALUES ('donations', 'STATUS_UPDATE', NEW.id, OLD.status, NEW.status); 
+                 END;''')
+    
+    c.execute('''CREATE TRIGGER IF NOT EXISTS audit_appointment_update 
+                 AFTER UPDATE OF status ON appointments 
+                 BEGIN 
+                     INSERT INTO security_audit_log (table_name, action_type, record_id, old_status, new_status) 
+                     VALUES ('appointments', 'STATUS_UPDATE', NEW.id, OLD.status, NEW.status); 
+                 END;''')
+
+    # =========================================================================
+    # DBMS FEATURE 3: ADD GPS TO DONORS FOR SPATIAL ALGORITHM
+    # =========================================================================
+    try: c.execute("ALTER TABLE donors ADD COLUMN lat REAL")
+    except sqlite3.OperationalError: pass
+    try: c.execute("ALTER TABLE donors ADD COLUMN lng REAL")
+    except sqlite3.OperationalError: pass
+    
+    donors_without_gps = c.execute("SELECT id FROM donors WHERE lat IS NULL").fetchall()
+    for d in donors_without_gps:
+        c.execute("UPDATE donors SET lat = ?, lng = ? WHERE id = ?", 
+                 (13.08 + random.uniform(-0.1, 0.1), 80.27 + random.uniform(-0.1, 0.1), d[0]))
+
     # Seed Admin & Hospitals
     c.execute("SELECT * FROM donors WHERE role='admin'")
     if not c.fetchone():
@@ -97,9 +171,7 @@ init_db()
 # --- HELPER: CHECK ELIGIBILITY ---
 def check_eligibility(user_id):
     conn = get_db_connection()
-    # Check donations (Approved, Pending, or Archived)
     last_manual = conn.execute("SELECT date FROM donations WHERE donor_id = ? AND (status = 'Approved' OR status = 'Pending' OR status = 'Archived') ORDER BY date DESC LIMIT 1", (user_id,)).fetchone()
-    # Check appointments (Verified)
     last_appt = conn.execute("SELECT date FROM appointments WHERE donor_id = ? AND status = 'Verified' ORDER BY date DESC LIMIT 1", (user_id,)).fetchone()
     conn.close()
     
@@ -114,13 +186,11 @@ def check_eligibility(user_id):
         if days_diff < 90: return False, 90 - days_diff
     return True, 0
 
-# --- ROUTES ---
 # --- HELPER: AUTOMATED EMAIL CONFIRMATION ---
 def send_confirmation_email(recipient_email, donor_name, hospital_name, book_date, time_slot):
     try:
-        # Your specific LifeFlow credentials
         SENDER_EMAIL = "life.flow.blood.donation.09@gmail.com" 
-        APP_PASSWORD = "myqdidztbciuxpoh" # Spaces removed for the code
+        APP_PASSWORD = "myqdidztbciuxpoh" 
 
         msg = EmailMessage()
         msg['Subject'] = f"LifeFlow: Appointment Confirmed - {hospital_name}"
@@ -128,36 +198,65 @@ def send_confirmation_email(recipient_email, donor_name, hospital_name, book_dat
         msg['To'] = recipient_email
         
         content = f"""
-        Dear {donor_name},
-        
-        Your blood donation appointment has been successfully booked!
-        
-        📅 Date: {book_date}
-        ⏰ Time: {time_slot}
-        🏥 Hospital: {hospital_name}
-        
-        Thank you for being a hero and saving lives!
-        
-        Regards,
-        The LifeFlow Team
+Hi {donor_name},
+
+Thank you for being a lifesaver! Your blood donation appointment has been successfully confirmed.
+
+Here are your appointment details:
+📅 Date: {book_date}
+⏰ Time: {time_slot}
+🏥 Hospital: {hospital_name}
+
+Please try to arrive 10 minutes early and ensure you are well-hydrated. Your contribution brings hope and saves lives.
+
+Warm regards,
+The LifeFlow Team
         """
         msg.set_content(content)
         
-        # Connect to Gmail SMTP server using secure SSL
         with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
             smtp.login(SENDER_EMAIL, APP_PASSWORD)
             smtp.send_message(msg)
             
     except Exception as e:
-        print(f"Email sending failed: {e}") # Fails silently so the app doesn't crash
+        print(f"Email sending failed: {e}") 
+
 @app.route('/')
 def index():
     conn = get_db_connection()
     today_str = date.today().strftime('%Y-%m-%d')
-    total_donors = conn.execute('SELECT COUNT(*) FROM donors WHERE role!="admin"').fetchone()[0]
-    total_verified = conn.execute("SELECT COUNT(*) FROM appointments WHERE status='Verified'").fetchone()[0]
-    stock_rows = conn.execute("SELECT u.blood_group, COUNT(*) as count FROM donations d JOIN donors u ON d.donor_id = u.id WHERE d.status='Approved' GROUP BY u.blood_group").fetchall()
     
+    total_donors = conn.execute('SELECT COUNT(*) FROM donors WHERE role!="admin"').fetchone()[0]
+    
+    # Combined calculations for Total Units logic
+    internal_units = conn.execute("SELECT COUNT(*) FROM appointments WHERE status='Verified'").fetchone()[0]
+    external_units_row = conn.execute("SELECT SUM(units) FROM hospital_stock").fetchone()[0]
+    external_units = external_units_row if external_units_row else 0
+    total_verified = internal_units + external_units
+
+    # Combined internal and external stock per blood group
+    internal_stock = conn.execute("SELECT u.blood_group, COUNT(*) as count FROM donations d JOIN donors u ON d.donor_id = u.id WHERE d.status='Approved' GROUP BY u.blood_group").fetchall()
+    external_stock = conn.execute("SELECT blood_group, SUM(units) as count FROM hospital_stock GROUP BY blood_group").fetchall()
+    
+    blood_stock = {g: 0 for g in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']}
+    
+    # Tally up internal and external stock for the Home Page
+    for row in internal_stock:
+        if row['blood_group'] in blood_stock:
+            blood_stock[row['blood_group']] += row['count']
+    for row in external_stock:
+        if row['blood_group'] in blood_stock:
+            blood_stock[row['blood_group']] += row['count']
+    
+    leaderboard_data = conn.execute('''
+        SELECT d.name, d.blood_group, SUM(dn.volume_ml) as total_volume
+        FROM donors d
+        JOIN donations dn ON d.id = dn.donor_id
+        WHERE dn.status = 'Approved'
+        GROUP BY d.id
+        ORDER BY total_volume DESC, d.name ASC LIMIT 3
+    ''').fetchall()
+
     upcoming_camps = conn.execute('''
         SELECT c.*, (SELECT COUNT(*) FROM camp_registrations cr WHERE cr.camp_id = c.id) as registered_count 
         FROM camps c WHERE c.status='Upcoming' AND c.date >= ? ORDER BY c.date ASC LIMIT 3
@@ -169,15 +268,29 @@ def index():
         ORDER BY c.date DESC, cp.id ASC LIMIT 10
     ''').fetchall()
 
-    blood_stock = {row['blood_group']: row['count'] for row in stock_rows}
-    for g in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']:
-        if g not in blood_stock: blood_stock[g] = 0
+    # =========================================================================
+    # NEW FEATURE: HOSPITAL INVENTORY LIST FOR HOMEPAGE
+    # =========================================================================
+    hospitals_db = conn.execute('''
+        SELECT h.id, h.name, h.type, h.email as contact, 
+        (SELECT COUNT(*) FROM donations d WHERE d.hospital = h.name AND d.status = 'Approved') as internal_stock,
+        IFNULL((SELECT SUM(units) FROM hospital_stock hs WHERE hs.hospital_id = h.id), 0) as external_stock
+        FROM hospitals h
+    ''').fetchall()
+    
+    hospital_list = []
+    for h in hospitals_db:
+        hd = dict(h)
+        hd['total_stock'] = hd['internal_stock'] + hd['external_stock']
+        hd['city'] = 'Chennai' # Since predefined ones are in Chennai, this enables the filter
+        hospital_list.append(hd)
+
     conn.close()
     return render_template('index.html', total_donors=total_donors, total_units=total_verified, 
                            lives_saved=total_verified*3, blood_stock=blood_stock, 
-                           upcoming_camps=upcoming_camps, gallery_photos=gallery_photos)
+                           upcoming_camps=upcoming_camps, gallery_photos=gallery_photos,
+                           leaderboard=leaderboard_data, hospital_list=hospital_list)
 
-# --- LOGIN & AUTH ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -242,7 +355,6 @@ def register_host():
 @app.route('/logout')
 def logout(): session.clear(); return redirect(url_for('login'))
 
-# --- HOST ROUTES ---
 @app.route('/host/dashboard', methods=['GET', 'POST'])
 def host_dashboard():
     if session.get('role') != 'host': return redirect(url_for('login'))
@@ -259,7 +371,6 @@ def host_dashboard():
     pending_uploads = conn.execute("SELECT * FROM camps c WHERE c.host_id = ? AND c.date < ? AND NOT EXISTS (SELECT 1 FROM camp_photos cp WHERE cp.camp_id = c.id)", (session['user_id'], today_str)).fetchall()
     host_details = conn.execute('SELECT * FROM camp_hosts WHERE id = ?', (session['user_id'],)).fetchone()
     
-    # FIXED: Use INNER JOIN so "None" users don't appear if they were deleted
     camp_donors = conn.execute('''
         SELECT cr.camp_id, d.name, d.blood_group, d.phone, d.email, d.city 
         FROM camp_registrations cr 
@@ -313,7 +424,6 @@ def export_camp_donors(camp_id):
         for d in donors: cw.writerow([d['name'] or 'Deleted', d['blood_group'], d['phone'], d['email'], d['city']])
         out = make_response(si.getvalue()); out.headers["Content-Disposition"] = f"attachment; filename=Donors_{camp_id}.csv"; out.headers["Content-type"] = "text/csv"; return out
 
-# --- USER ROUTES ---
 @app.route('/profile', methods=['GET', 'POST'])
 def user_profile():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -356,7 +466,6 @@ def change_password():
     if session.get('role') == 'hospital': return redirect(url_for('hospital_dashboard'))
     return redirect(url_for('user_profile'))
 
-# --- DONATE ROUTE ---
 @app.route('/donate', methods=['POST'])
 def donate():
     if 'user_id' not in session: return redirect(url_for('login'))
@@ -364,7 +473,6 @@ def donate():
     
     donation_date = request.form.get('date', date.today())
     
-    # Save as 'Pending' so it shows up in Hospital Dashboard for verification
     conn.execute('''INSERT INTO donations (donor_id, volume_ml, date, hospital, status) 
                     VALUES (?, ?, ?, ?, 'Pending')''', 
                  (session['user_id'], 450, donation_date, request.form['hospital_name']))
@@ -378,7 +486,6 @@ def donate():
 def book_appointment():
     if 'user_id' not in session: return redirect(url_for('login'))
     
-    # CHECK 90-DAY ELIGIBILITY
     is_eligible, days_left = check_eligibility(session['user_id'])
     if not is_eligible: 
         flash(f'You cannot book yet. Please wait {days_left} days.', 'warning')
@@ -388,19 +495,144 @@ def book_appointment():
     if request.method == 'POST':
         booking_type = request.form.get('booking_type') 
         if booking_type == 'hospital':
-            conn.execute('INSERT INTO appointments (donor_id, hospital_id, date, time_slot) VALUES (?, ?, ?, ?)', (session['user_id'], request.form['hospital_id'], request.form['date'], request.form['time_slot'])); flash('Booked!', 'success')
+            hosp_id = request.form['hospital_id']
+            book_date = request.form['date']
+            time_slot = request.form['time_slot']
+            
+            try:
+                conn.execute("BEGIN EXCLUSIVE TRANSACTION")
+                
+                MAX_SLOTS_PER_TIME = 5
+                count_row = conn.execute('SELECT COUNT(*) FROM appointments WHERE hospital_id = ? AND date = ? AND time_slot = ?', (hosp_id, book_date, time_slot)).fetchone()
+                current_bookings = count_row[0]
+                
+                if current_bookings >= MAX_SLOTS_PER_TIME:
+                    conn.rollback()
+                    flash(f'Sorry! The {time_slot} slot is fully booked. Please select another time.', 'danger')
+                else:
+                    conn.execute('INSERT INTO appointments (donor_id, hospital_id, date, time_slot) VALUES (?, ?, ?, ?)', (session['user_id'], hosp_id, book_date, time_slot))
+                    
+                    conn.commit()
+                    flash('Booked successfully! Check your email for confirmation.', 'success')
+                    
+                    donor = conn.execute("SELECT name, email FROM donors WHERE id = ?", (session['user_id'],)).fetchone()
+                    hosp = conn.execute("SELECT name FROM hospitals WHERE id = ?", (hosp_id,)).fetchone()
+                    
+                    send_confirmation_email(donor['email'], donor['name'], hosp['name'], book_date, time_slot)
+                    
+            except Exception as e:
+                conn.rollback()
+                flash('A database transaction error occurred. Please try again.', 'danger')
+                
         elif booking_type == 'camp':
             camp_id = request.form['camp_id']
             exists = conn.execute("SELECT id FROM camp_registrations WHERE camp_id = ? AND donor_id = ?", (camp_id, session['user_id'])).fetchone()
             if exists: flash('Already registered.', 'warning')
-            else: conn.execute('INSERT INTO camp_registrations (camp_id, donor_id, booking_date) VALUES (?, ?, ?)', (camp_id, session['user_id'], date.today())); flash('Registered!', 'success')
-        conn.commit(); conn.close(); return redirect(url_for('user_profile'))
+            else: 
+                conn.execute('INSERT INTO camp_registrations (camp_id, donor_id, booking_date) VALUES (?, ?, ?)', (camp_id, session['user_id'], date.today()))
+                conn.commit()
+                flash('Registered for the camp!', 'success')
+        
+        conn.close()
+        return redirect(url_for('user_profile'))
+        
     today_str = date.today().strftime('%Y-%m-%d')
     hospitals = conn.execute('SELECT * FROM hospitals').fetchall()
     camps = conn.execute("SELECT * FROM camps WHERE status='Upcoming' AND date >= ? ORDER BY date ASC", (today_str,)).fetchall()
-    conn.close(); return render_template('book_appointment.html', hospitals=hospitals, camps=camps, current_date=date.today())
+    conn.close()
+    return render_template('book_appointment.html', hospitals=hospitals, camps=camps, current_date=date.today())
 
-# --- HOSPITAL DASHBOARD ---
+# =========================================================================
+# DBMS FEATURE: PUBLIC SOS EMERGENCY FINDER
+# =========================================================================
+@app.route('/public_sos', methods=['GET', 'POST'])
+def public_sos():
+    if request.method == 'POST':
+        lat = request.form.get('lat')
+        lng = request.form.get('lng')
+        blood_group = request.form.get('blood_group')
+        
+        if not lat or not lng:
+            flash("Please allow location access to use the SOS Radar.", "warning")
+            return redirect(url_for('public_sos'))
+            
+        conn = get_db_connection()
+        nearest_donors = conn.execute('''
+            SELECT name, phone, blood_group, city, 
+                   ROUND(haversine(?, ?, lat, lng), 2) as distance_km 
+            FROM donors 
+            WHERE blood_group = ? AND role != 'admin' AND lat IS NOT NULL
+            ORDER BY distance_km ASC 
+            LIMIT 5
+        ''', (lat, lng, blood_group)).fetchall()
+        conn.close()
+        
+        return render_template('public_sos.html', nearest_donors=nearest_donors, sos_bg=blood_group)
+    
+    return render_template('public_sos.html')
+
+# =========================================================================
+# DBMS FEATURE: SPATIAL QUERIES - HOSPITAL SOS
+# =========================================================================
+@app.route('/hospital/sos', methods=['POST'])
+def hospital_sos():
+    if session.get('role') != 'hospital': return redirect(url_for('login'))
+    blood_group = request.form.get('blood_group')
+    conn = get_db_connection()
+    
+    # Get the Hospital's exact GPS Coordinates
+    hosp = conn.execute("SELECT lat, lng FROM hospitals WHERE id = ?", (session['user_id'],)).fetchone()
+    
+    # Execute Haversine Spatial Query directly inside SQLite
+    nearest_donors = conn.execute('''
+        SELECT name, phone, blood_group, city, 
+               ROUND(haversine(?, ?, lat, lng), 2) as distance_km 
+        FROM donors 
+        WHERE blood_group = ? AND role != 'admin'
+        ORDER BY distance_km ASC 
+        LIMIT 5
+    ''', (hosp['lat'], hosp['lng'], blood_group)).fetchall()
+    
+    # Reload regular dashboard data
+    ts = date.today().strftime('%Y-%m-%d')
+    upcoming = conn.execute("SELECT a.*, d.name as donor_name, d.blood_group, d.phone FROM appointments a JOIN donors d ON a.donor_id = d.id WHERE a.hospital_id = ? AND a.status = 'Scheduled' AND a.date > ? ORDER BY a.date ASC", (session['user_id'], ts)).fetchall()
+    queue_appts = conn.execute("SELECT a.id, a.date, a.time_slot, 'Appointment' as type, d.name as donor_name, d.blood_group, d.phone, a.status FROM appointments a JOIN donors d ON a.donor_id = d.id WHERE a.hospital_id = ? AND a.status = 'Scheduled' AND a.date <= ?", (session['user_id'], ts)).fetchall()
+    queue_manual = conn.execute("SELECT d.id, d.date, 'N/A' as time_slot, 'Manual Request' as type, u.name as donor_name, u.blood_group, u.phone, d.status FROM donations d JOIN donors u ON d.donor_id = u.id WHERE d.hospital = ? AND d.status = 'Pending'", (session['name'],)).fetchall()
+    verification_queue = [dict(r) for r in queue_appts] + [dict(r) for r in queue_manual]
+    verification_queue.sort(key=lambda x: x['date'])
+    conn.close()
+    
+    flash(f'SOS Alert active. Found {len(nearest_donors)} nearby donors for {blood_group}.', 'danger')
+    return render_template('hospital_dashboard.html', upcoming=upcoming, verification_queue=verification_queue, nearest_donors=nearest_donors, sos_bg=blood_group)
+
+# =========================================================================
+# NEW ROUTE: UPDATE EXTERNAL HOSPITAL STOCK
+# =========================================================================
+@app.route('/hospital/update_stock', methods=['POST'])
+def hospital_update_stock():
+    if session.get('role') != 'hospital': return redirect(url_for('login'))
+    
+    bg = request.form['blood_group']
+    units = request.form['units']
+    password = request.form['password']
+    
+    conn = get_db_connection()
+    user = conn.execute('SELECT * FROM hospitals WHERE id = ?', (session['user_id'],)).fetchone()
+    
+    if user and check_password_hash(user['password'], password):
+        exists = conn.execute("SELECT id FROM hospital_stock WHERE hospital_id=? AND blood_group=?", (session['user_id'], bg)).fetchone()
+        if exists:
+            conn.execute("UPDATE hospital_stock SET units = units + ? WHERE id=?", (units, exists['id']))
+        else:
+            conn.execute("INSERT INTO hospital_stock (hospital_id, blood_group, units) VALUES (?, ?, ?)", (session['user_id'], bg, units))
+        conn.commit()
+        flash(f'Successfully added {units} units of {bg} to your external inventory!', 'success')
+    else:
+        flash('Invalid password! Stock update failed.', 'danger')
+        
+    conn.close()
+    return redirect(url_for('hospital_dashboard'))
+
 @app.route('/hospital/dashboard')
 def hospital_dashboard(): 
     if session.get('role') != 'hospital': return redirect(url_for('login'))
@@ -408,14 +640,12 @@ def hospital_dashboard():
     upcoming = conn.execute("SELECT a.*, d.name as donor_name, d.blood_group, d.phone FROM appointments a JOIN donors d ON a.donor_id = d.id WHERE a.hospital_id = ? AND a.status = 'Scheduled' AND a.date > ? ORDER BY a.date ASC", (session['user_id'], today_str)).fetchall()
     queue_appts = conn.execute("SELECT a.id, a.date, a.time_slot, 'Appointment' as type, d.name as donor_name, d.blood_group, d.phone, a.status FROM appointments a JOIN donors d ON a.donor_id = d.id WHERE a.hospital_id = ? AND a.status = 'Scheduled' AND a.date <= ?", (session['user_id'], today_str)).fetchall()
     
-    # FIXED: 'Pending' manual requests should appear here
     queue_manual = conn.execute("SELECT d.id, d.date, 'N/A' as time_slot, 'Manual Request' as type, u.name as donor_name, u.blood_group, u.phone, d.status FROM donations d JOIN donors u ON d.donor_id = u.id WHERE d.hospital = ? AND d.status = 'Pending'", (session['name'],)).fetchall()
     
-    verification_queue = [dict(row) for row in queue_appts] + [dict(row) for row in queue_manual]
+    verification_queue = [dict(r) for r in queue_appts] + [dict(r) for r in queue_manual]
     verification_queue.sort(key=lambda x: x['date'])
     conn.close(); return render_template('hospital_dashboard.html', upcoming=upcoming, verification_queue=verification_queue)
 
-# --- HOSPITAL EXPORT ROUTES ---
 @app.route('/hospital/export_donations')
 def hospital_export_donations():
     if session.get('role') != 'hospital': return redirect(url_for('login'))
@@ -426,20 +656,12 @@ def hospital_export_donations():
     blood_group = request.args.get('blood_group')
 
     conn = get_db_connection()
-    
-    # Filter Logic
     query = "SELECT d.date, u.name, u.blood_group, u.phone, d.volume_ml FROM donations d JOIN donors u ON d.donor_id=u.id WHERE d.hospital=? AND d.status='Approved'"
     params = [session['name']]
 
-    if start_date: 
-        query += " AND d.date >= ?"
-        params.append(start_date)
-    if end_date: 
-        query += " AND d.date <= ?"
-        params.append(end_date)
-    if blood_group and blood_group != 'all': 
-        query += " AND u.blood_group = ?"
-        params.append(blood_group)
+    if start_date: query += " AND d.date >= ?"; params.append(start_date)
+    if end_date: query += " AND d.date <= ?"; params.append(end_date)
+    if blood_group and blood_group != 'all': query += " AND u.blood_group = ?"; params.append(blood_group)
 
     donations = conn.execute(query, params).fetchall()
     conn.close()
@@ -473,19 +695,12 @@ def hospital_export_appointments():
     status = request.args.get('status')
 
     conn = get_db_connection()
-    
     query = "SELECT a.date, a.time_slot, d.name, d.blood_group, d.phone, a.status FROM appointments a JOIN donors d ON a.donor_id = d.id WHERE a.hospital_id = ?"
     params = [session['user_id']]
 
-    if start_date: 
-        query += " AND a.date >= ?"
-        params.append(start_date)
-    if end_date: 
-        query += " AND a.date <= ?"
-        params.append(end_date)
-    if status and status != 'all': 
-        query += " AND a.status = ?"
-        params.append(status)
+    if start_date: query += " AND a.date >= ?"; params.append(start_date)
+    if end_date: query += " AND a.date <= ?"; params.append(end_date)
+    if status and status != 'all': query += " AND a.status = ?"; params.append(status)
 
     appointments = conn.execute(query, params).fetchall()
     conn.close()
@@ -535,7 +750,24 @@ def download_certificate(appt_id):
     if not data: return "Certificate not available", 403
     pdf = FPDF('L', 'mm', 'A4'); pdf.add_page(); pdf.set_fill_color(178, 34, 34); pdf.rect(0, 0, 297, 15, 'F'); pdf.rect(0, 195, 297, 15, 'F'); pdf.set_y(40); pdf.set_font("Arial", 'B', 32); pdf.set_text_color(139, 0, 0); pdf.cell(0, 15, "BLOOD DONATION CERTIFICATE", 0, 1, 'C'); pdf.set_font("Arial", '', 12); pdf.set_text_color(80, 80, 80); pdf.ln(15); pdf.cell(0, 10, "This certificate is awarded to", 0, 1, 'C'); pdf.set_font("Arial", 'B', 40); pdf.set_text_color(0, 0, 0); pdf.ln(5); pdf.cell(0, 20, data['name'], 0, 1, 'C'); pdf.set_font("Arial", '', 14); pdf.ln(15); pdf.multi_cell(0, 10, f"For the voluntary blood donation (Group: {data['blood_group']}).\nYour contribution brings hope and saves lives.", 0, 'C'); pdf.set_y(150); pdf.set_font("Arial", 'B', 12); pdf.cell(0, 10, f"Date: {data['date']}", 0, 1, 'C'); pdf.ln(8); pdf.cell(0, 10, f"Location: {data['hospital_name']}", 0, 1, 'C'); response = make_response(pdf.output(dest='S').encode('latin-1')); response.headers['Content-Type'] = 'application/pdf'; response.headers['Content-Disposition'] = 'attachment; filename=Certificate.pdf'; return response
 
-# --- ADMIN DASHBOARD & ACTIONS ---
+# =========================================================================
+# NEW ROUTE: ADMIN ADD MANUAL UNITS TO USER
+# =========================================================================
+@app.route('/admin/add_donation_units', methods=['POST'])
+def admin_add_donation_units():
+    if session.get('role') != 'admin': return redirect(url_for('admin_login'))
+    user_id = request.form['user_id']
+    volume_ml = request.form['volume_ml']
+    hospital_name = request.form['hospital_name']
+    
+    conn = get_db_connection()
+    conn.execute("INSERT INTO donations (donor_id, volume_ml, date, hospital, status) VALUES (?, ?, ?, ?, 'Approved')", 
+                 (user_id, volume_ml, date.today().strftime('%Y-%m-%d'), hospital_name))
+    conn.commit()
+    conn.close()
+    flash(f'Successfully added {volume_ml}ml for the donor.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
 @app.route('/admin')
 def admin_dashboard():
     if session.get('role') != 'admin': return redirect(url_for('admin_login'))
@@ -550,7 +782,6 @@ def admin_dashboard():
     pending_appts = conn.execute('''SELECT a.date, d.name as donor, d.phone, h.name as hospital_name FROM appointments a JOIN donors d ON a.donor_id = d.id JOIN hospitals h ON a.hospital_id = h.id WHERE a.status = 'Scheduled' ORDER BY h.name ASC, a.date ASC''').fetchall()
     verified_appts = conn.execute('''SELECT a.date, d.name as donor, d.phone, h.name as hospital_name FROM appointments a JOIN donors d ON a.donor_id = d.id JOIN hospitals h ON a.hospital_id = h.id WHERE a.status = 'Verified' ORDER BY h.name ASC, a.date DESC''').fetchall()
     
-    # NEW: Fetch Gallery Photos for Admin Management
     gallery_photos = conn.execute('''
         SELECT cp.id, cp.filename, c.name as camp_name, c.date 
         FROM camp_photos cp 
@@ -563,8 +794,26 @@ def admin_dashboard():
     hospital_donors = []
     if hospital_search:
         hospital_donors = conn.execute('''SELECT d.name, d.phone, d.email, d.city, a.date FROM appointments a JOIN donors d ON a.donor_id = d.id JOIN hospitals h ON a.hospital_id = h.id WHERE h.name LIKE ? AND a.status='Verified' ''', (f'%{hospital_search}%',)).fetchall()
+    
+    audit_logs = conn.execute("SELECT * FROM security_audit_log ORDER BY action_timestamp DESC LIMIT 20").fetchall()
+    
+    ai_predictions = conn.execute('''
+        SELECT h.name as hospital,
+               IFNULL(SUM(d.volume_ml), 0) as current_stock,
+               ROUND(AVG(IFNULL(SUM(d.volume_ml), 0)) OVER (), 1) as global_avg,
+               CASE 
+                   WHEN IFNULL(SUM(d.volume_ml), 0) < (AVG(IFNULL(SUM(d.volume_ml), 0)) OVER () * 0.7) THEN '🚨 CRITICAL SHORTAGE'
+                   WHEN IFNULL(SUM(d.volume_ml), 0) > (AVG(IFNULL(SUM(d.volume_ml), 0)) OVER () * 1.5) THEN '🌟 SURPLUS'
+                   ELSE '✅ STABLE' 
+               END as ai_status
+        FROM hospitals h
+        LEFT JOIN donations d ON h.name = d.hospital AND d.status = 'Approved'
+        GROUP BY h.name
+        ORDER BY current_stock ASC
+    ''').fetchall()
+    
     conn.close()
-    return render_template('admin_dashboard.html', donors=donors, hospitals=hospitals, hosts=hosts, hospital_stats=hospital_stats, pending_appts=pending_appts, verified_appts=verified_appts, all_camps=all_camps, ended_camps=ended_camps, admin_info=admin_info, gallery_photos=gallery_photos)
+    return render_template('admin_dashboard.html', donors=donors, hospitals=hospitals, hosts=hosts, hospital_stats=hospital_stats, pending_appts=pending_appts, verified_appts=verified_appts, all_camps=all_camps, ended_camps=ended_camps, admin_info=admin_info, gallery_photos=gallery_photos, audit_logs=audit_logs, ai_predictions=ai_predictions)
 
 @app.route('/admin/update_profile', methods=['POST'])
 def update_admin_profile():
@@ -661,7 +910,6 @@ def delete_host(id):
     conn = get_db_connection(); conn.execute('DELETE FROM camps WHERE host_id = ?', (id,)); conn.execute('DELETE FROM camp_hosts WHERE id = ?', (id,)); conn.commit(); conn.close(); flash('Deleted', 'success')
     return redirect(url_for('admin_dashboard'))
 
-# NEW: Route to delete gallery photos
 @app.route('/admin/delete_photo/<int:id>')
 def delete_camp_photo_admin(id):
     if session.get('role') != 'admin': return redirect(url_for('admin_login'))
@@ -669,11 +917,8 @@ def delete_camp_photo_admin(id):
     photo = conn.execute("SELECT filename FROM camp_photos WHERE id = ?", (id,)).fetchone()
     
     if photo:
-        try:
-            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], photo['filename']))
-        except OSError:
-            pass # File might already be gone
-        
+        try: os.remove(os.path.join(app.config['UPLOAD_FOLDER'], photo['filename']))
+        except OSError: pass
         conn.execute("DELETE FROM camp_photos WHERE id = ?", (id,))
         conn.commit()
         flash('Photo deleted successfully.', 'success')
@@ -752,19 +997,36 @@ def contact(): return render_template('contact.html')
 @app.route('/map')
 def map_page(): return render_template('map.html')
 
+# =========================================================================
+# MAP API: UPDATED TO REFLECT EXTERNAL + INTERNAL STOCK
+# =========================================================================
 @app.route('/api/blood-stock')
 def get_map(): 
-    conn = get_db_connection(); today_str = date.today().strftime('%Y-%m-%d')
-    hospitals = conn.execute("SELECT h.name, h.lat, h.lng, h.type, h.email as contact, 'hospital' as marker_type, 'N/A' as host, (SELECT COUNT(*) FROM donations d WHERE d.hospital = h.name AND d.status = 'Approved') as stock_count FROM hospitals h").fetchall()
+    conn = get_db_connection()
+    today_str = date.today().strftime('%Y-%m-%d')
+    
+    # Calculate Internal verified donations + External uploaded stock
+    hospitals = conn.execute('''
+        SELECT h.id, h.name, h.lat, h.lng, h.type, h.email as contact, 'hospital' as marker_type, 'N/A' as host, 
+        (SELECT COUNT(*) FROM donations d WHERE d.hospital = h.name AND d.status = 'Approved') as internal_stock,
+        IFNULL((SELECT SUM(units) FROM hospital_stock hs WHERE hs.hospital_id = h.id), 0) as external_stock
+        FROM hospitals h
+    ''').fetchall()
+    
     camps = conn.execute("SELECT c.name, c.lat, c.lng, 'Camp' as type, 'camp' as marker_type, c.estimated_participants as capacity, ch.organization_name as host, ch.phone as contact, (SELECT COUNT(*) FROM camp_registrations cr WHERE cr.camp_id = c.id) as registered_count FROM camps c JOIN camp_hosts ch ON c.host_id = ch.id WHERE c.status='Upcoming' AND c.date >= ?", (today_str,)).fetchall()
-    conn.close(); data = []
+    conn.close()
+    
+    data = []
     for h in hospitals:
-        st = f"{h['stock_count']} Units" if h['stock_count'] > 0 else "Low Stock"
-        info = f"<div style='text-align:center;'><b>🏥 {h['name']}</b><br><span style='color:grey;'>{h['type']} Hospital</span><br><div style='margin:5px 0; background:#ffebeb; border:1px solid #ffcccc;'><b>🩸 Stock:</b> <span style='color:red;'>{st}</span></div>📞 {h['contact']}</div>"
+        total_stock = h['internal_stock'] + h['external_stock']
+        st = f"{total_stock} Units" if total_stock > 0 else "Low Stock"
+        info = f"<div style='text-align:center;'><b>🏥 {h['name']}</b><br><span style='color:grey;'>{h['type']} Hospital</span><br><div style='margin:5px 0; background:#ffebeb; border:1px solid #ffcccc;'><b>🩸 Total Stock:</b> <span style='color:red;'>{st}</span></div>📞 {h['contact']}</div>"
         d = dict(h); d['popup_info'] = info; data.append(d)
+        
     for c in camps:
         info = f"<div style='text-align:center;'><b>⛺ {c['name']}</b><br><span style='color:grey;'>Host: {c['host']}</span><br><div style='margin:5px 0; background:#e6fffa; border:1px solid #b3ffec;'><b>📝 Registered:</b> <span style='color:green;'>{c['registered_count']} / {c['capacity']}</span></div>📞 {c['contact']}</div>"
         d = dict(c); d['popup_info'] = info; data.append(d)
+        
     return jsonify(data) 
 
 if __name__ == '__main__':
