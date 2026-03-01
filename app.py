@@ -333,14 +333,30 @@ def admin_login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        # 1. Extract data first
+        age = int(request.form.get('age', 0))
+        weight = int(request.form.get('weight', 0))
+
+        # 2. Apply Medical Eligibility Logic
+        if age < 18 or weight < 50:
+            flash("Medical Alert: You must be at least 18 years old and 50kg to donate.", "danger")
+            return redirect(url_for('register'))
+
+        # 3. Proceed to Database Insertion
         try:
             conn = get_db_connection()
             conn.execute("INSERT INTO donors (name, email, phone, password, blood_group, city, age, weight, address, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'user')",
-                         (request.form['name'], request.form['email'], request.form['phone'], generate_password_hash(request.form['password']), request.form['blood_group'], request.form['city'], request.form['age'], request.form['weight'], request.form['address']))
-            conn.commit(); conn.close(); return redirect(url_for('login'))
-        except: flash('Phone already used.', 'danger')
+                         (request.form['name'], request.form['email'], request.form['phone'], 
+                          generate_password_hash(request.form['password']), 
+                          request.form['blood_group'], request.form['city'], age, weight, request.form['address']))
+            conn.commit()
+            conn.close()
+            return redirect(url_for('login'))
+        except Exception as e:
+            flash('Phone number or Email already registered.', 'danger')
+            
     return render_template('register.html')
-
+    
 @app.route('/register_host', methods=['GET', 'POST'])
 def register_host():
     if request.method == 'POST':
